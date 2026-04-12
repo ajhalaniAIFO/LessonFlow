@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LessonSummaryActions } from "@/components/lesson/lesson-summary-actions";
 import { QuizSceneClient } from "@/components/lesson/quiz-scene-client";
 import { RegenerateLessonButton } from "@/components/lesson/regenerate-lesson-button";
+import { RegenerateSceneButton } from "@/components/lesson/regenerate-scene-button";
 import { SceneProgressTracker } from "@/components/lesson/scene-progress-tracker";
 import { TutorChatClient } from "@/components/lesson/tutor-chat-client";
 import {
@@ -121,6 +122,7 @@ export default async function LessonPage({
               <span className="eyebrow">{getSceneProgressLabel(activeSceneIndex, lesson.scenes)}</span>
               <article className="scene-article">
                 <h3>{activeScene.title}</h3>
+                <RegenerateSceneButton lessonId={lesson.id} sceneId={activeScene.id} />
                 {"content" in activeScene && activeScene.content && "summary" in activeScene.content ? (
                   <>
                     <p>{activeScene.content.summary}</p>

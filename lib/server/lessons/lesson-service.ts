@@ -221,6 +221,83 @@ export async function createLessonRegenerationJob(
   };
 }
 
+export async function regenerateLessonScene(lessonId: string, sceneId: string) {
+  const db = getDatabase();
+  const lesson = await getLessonById(lessonId);
+
+  if (!lesson) {
+    throw new AppError("INVALID_REQUEST", "Lesson not found.");
+  }
+
+  const scene = lesson.scenes.find((entry) => entry.id === sceneId);
+  if (!scene) {
+    throw new AppError("INVALID_REQUEST", "Scene not found.");
+  }
+
+  const outlineRow = db
+    .prepare("SELECT * FROM outline_items WHERE id = ? AND lesson_id = ?")
+    .get(scene.outlineItemId, lessonId) as OutlineRow | undefined;
+
+  if (!outlineRow) {
+    throw new AppError("INVALID_REQUEST", "Scene outline item not found.");
+  }
+
+  let content: Scene["content"];
+  let title = scene.title;
+
+  if (scene.type === "lesson") {
+    const nextScene = await generateLessonScene({
+      lessonTitle: lesson.title,
+      lessonPrompt: lesson.prompt ?? "",
+      outlineTitle: outlineRow.title,
+      outlineGoal: outlineRow.goal ?? undefined,
+      language: lesson.language,
+    });
+
+    title = nextScene.title;
+    content = nextScene;
+  } else {
+    const priorLessonScene = [...lesson.scenes]
+      .filter(
+        (entry) =>
+          entry.type === "lesson" &&
+          entry.order < scene.order &&
+          entry.content &&
+          "summary" in entry.content,
+      )
+      .sort((left, right) => right.order - left.order)[0];
+
+    const nextQuiz = await generateQuizScene({
+      lessonTitle: lesson.title,
+      lessonPrompt: lesson.prompt ?? "",
+      outlineTitle: outlineRow.title,
+      outlineGoal: outlineRow.goal ?? undefined,
+      sceneSummary:
+        priorLessonScene?.content && "summary" in priorLessonScene.content
+          ? priorLessonScene.content.summary
+          : undefined,
+      keyTakeaways:
+        priorLessonScene?.content && "keyTakeaways" in priorLessonScene.content
+          ? priorLessonScene.content.keyTakeaways
+          : undefined,
+      language: lesson.language,
+    });
+
+      title = nextQuiz.title;
+      content = {
+        questions: nextQuiz.questions,
+      };
+  }
+
+  db.prepare(
+    `UPDATE scenes
+     SET title = ?, content_json = ?, status = ?, error_message = ?, updated_at = ?
+     WHERE id = ? AND lesson_id = ?`,
+  ).run(title, JSON.stringify(content), "ready", null, Date.now(), sceneId, lessonId);
+
+  return getLessonById(lessonId);
+}
+
 export async function processLessonJob(jobId: string) {
   const db = getDatabase();
   const job = db
@@ -367,7 +444,9 @@ export async function processLessonJob(jobId: string) {
         title: quizScene.title,
         display_order: outlineRow.display_order,
         status: "ready",
-        content_json: JSON.stringify(quizScene),
+        content_json: JSON.stringify({
+          questions: quizScene.questions,
+        }),
         error_message: null,
         created_at: now,
         updated_at: now,

@@ -13,6 +13,7 @@ import {
   getLessonJob,
   parseCreateLessonRequest,
   processLessonJob,
+  regenerateLessonScene,
 } from "@/lib/server/lessons/lesson-service";
 
 function createTempDbPath() {
@@ -220,5 +221,72 @@ describe("lesson-service", () => {
     expect(lesson?.scenes).toHaveLength(2);
     expect(lesson?.scenes[0]?.title).toBe("Energy Systems");
     expect(firstOutlineSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("regenerates a single lesson scene in place", async () => {
+    const outlineSpy = vi.spyOn(outlineGenerator, "generateLessonOutline").mockResolvedValue({
+      title: "Thermodynamics Basics",
+      outline: [
+        { title: "What thermodynamics studies", goal: "Understand the scope", sceneType: "lesson" },
+        { title: "Quick knowledge check", goal: "Reinforce understanding", sceneType: "quiz" },
+      ],
+    });
+    const sceneSpy = vi.spyOn(sceneGenerator, "generateLessonScene").mockResolvedValue({
+      title: "What Thermodynamics Studies",
+      summary: "Thermodynamics explains heat, work, and energy.",
+      sections: [
+        { heading: "Core idea", body: "It studies energy transfer." },
+        { heading: "Why it matters", body: "It helps explain engines and refrigeration." },
+      ],
+      keyTakeaways: ["Energy transfer matters", "Thermodynamics is widely used"],
+    });
+    const quizSpy = vi.spyOn(quizGenerator, "generateQuizScene").mockResolvedValue({
+      title: "Quick knowledge check",
+      questions: [
+        {
+          id: "quiz-q1",
+          prompt: "What does thermodynamics study?",
+          type: "multiple_choice",
+          options: ["Energy transfer", "Only gravity", "Only electricity", "Only chemistry"],
+          correctIndex: 0,
+          explanation: "Thermodynamics studies heat, work, and energy transfer.",
+        },
+      ],
+    });
+
+    const created = await createLessonJob(
+      {
+        prompt: "Teach me thermodynamics",
+        language: "en",
+      },
+      { autoProcess: false },
+    );
+    await processLessonJob(created.jobId);
+
+    const lessonBefore = await getLessonById(created.lessonId);
+    const lessonScene = lessonBefore?.scenes.find((scene) => scene.type === "lesson");
+    expect(lessonScene).toBeTruthy();
+
+    sceneSpy.mockReset();
+    sceneSpy.mockResolvedValue({
+      title: "Refreshed lesson scene",
+      summary: "This regenerated scene reframes the topic more clearly.",
+      sections: [
+        { heading: "Refreshed concept", body: "The explanation is cleaner now." },
+        { heading: "Why it helps", body: "A regenerated scene can improve learning flow." },
+      ],
+      keyTakeaways: ["Scene regeneration is targeted", "The rest of the lesson stays intact"],
+    });
+
+    const updatedLesson = await regenerateLessonScene(created.lessonId, lessonScene!.id);
+
+    expect(updatedLesson?.scenes).toHaveLength(2);
+    expect(updatedLesson?.scenes[0]?.title).toBe("Refreshed lesson scene");
+    expect(updatedLesson?.scenes[1]?.type).toBe("quiz");
+    expect(sceneSpy).toHaveBeenCalledTimes(1);
+
+    outlineSpy.mockRestore();
+    sceneSpy.mockRestore();
+    quizSpy.mockRestore();
   });
 });
