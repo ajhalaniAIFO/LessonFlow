@@ -1,0 +1,4 @@
+You are generating a quiz scene.
+
+Return valid JSON only.
+

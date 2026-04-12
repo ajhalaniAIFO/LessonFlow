@@ -1,0 +1,259 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import type { ModelInfo } from "@/lib/server/llm/types";
+import type { ApiResponse } from "@/types/api";
+import type { ModelSettings } from "@/types/settings";
+
+type StatusState = {
+  tone: "success" | "error";
+  title: string;
+  message: string;
+};
+
+type TestResult = {
+  provider: string;
+  serverReachable: boolean;
+  modelAvailable: boolean;
+  message: string;
+};
+
+type FormProps = {
+  initialSettings: ModelSettings;
+};
+
+export function SettingsForm({ initialSettings }: FormProps) {
+  const [form, setForm] = useState<ModelSettings>(initialSettings);
+  const [modelOptions, setModelOptions] = useState<ModelInfo[]>([]);
+  const [status, setStatus] = useState<StatusState | null>(null);
+  const [isSaving, startSaving] = useTransition();
+  const [isTesting, startTesting] = useTransition();
+  const [isLoadingModels, startLoadingModels] = useTransition();
+
+  const selectedModelKnown = useMemo(
+    () => modelOptions.some((model) => model.id === form.model),
+    [form.model, modelOptions],
+  );
+
+  function updateField<K extends keyof ModelSettings>(key: K, value: ModelSettings[K]) {
+    setForm((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  }
+
+  async function handleSave() {
+    setStatus(null);
+    startSaving(async () => {
+      const response = await fetch("/api/settings/model", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
+
+      const payload = (await response.json()) as ApiResponse<ModelSettings>;
+
+      if (!payload.success) {
+        setStatus({
+          tone: "error",
+          title: "Save failed",
+          message: payload.error.message,
+        });
+        return;
+      }
+
+      setForm(payload.data);
+      setStatus({
+        tone: "success",
+        title: "Settings saved",
+        message: "Local model settings were persisted successfully.",
+      });
+    });
+  }
+
+  async function handleTest() {
+    setStatus(null);
+    startTesting(async () => {
+      const response = await fetch("/api/settings/model/test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
+
+      const payload = (await response.json()) as ApiResponse<TestResult>;
+
+      if (!payload.success) {
+        setStatus({
+          tone: "error",
+          title: "Connection failed",
+          message: payload.error.message,
+        });
+        return;
+      }
+
+      setStatus({
+        tone:
+          payload.data.serverReachable && payload.data.modelAvailable
+            ? "success"
+            : "error",
+        title:
+          payload.data.serverReachable && payload.data.modelAvailable
+            ? "Connection successful"
+            : "Connection needs attention",
+        message: payload.data.message,
+      });
+    });
+  }
+
+  async function handleLoadModels() {
+    setStatus(null);
+    const query = new URLSearchParams({
+      baseUrl: form.baseUrl,
+    });
+
+    startLoadingModels(async () => {
+      const response = await fetch(`/api/settings/model/models?${query.toString()}`);
+      const payload = (await response.json()) as ApiResponse<{ models: ModelInfo[] }>;
+
+      if (!payload.success) {
+        setStatus({
+          tone: "error",
+          title: "Model discovery failed",
+          message: payload.error.message,
+        });
+        return;
+      }
+
+      setModelOptions(payload.data.models);
+      setStatus({
+        tone: "success",
+        title: "Model list refreshed",
+        message:
+          payload.data.models.length > 0
+            ? `Found ${payload.data.models.length} local model${
+                payload.data.models.length === 1 ? "" : "s"
+              }.`
+            : "No local models were returned. You can still type one manually.",
+      });
+    });
+  }
+
+  return (
+    <div className="form-grid">
+      <div className="field">
+        <label htmlFor="provider">Provider</label>
+        <select
+          id="provider"
+          value={form.provider}
+          onChange={(event) => updateField("provider", event.target.value as ModelSettings["provider"])}
+        >
+          <option value="ollama">Ollama</option>
+        </select>
+      </div>
+
+      <div className="field">
+        <label htmlFor="baseUrl">Base URL</label>
+        <input
+          id="baseUrl"
+          value={form.baseUrl}
+          onChange={(event) => updateField("baseUrl", event.target.value)}
+          placeholder="http://127.0.0.1:11434"
+        />
+        <span className="field-hint">Use your local Ollama endpoint.</span>
+      </div>
+
+      <div className="field">
+        <label htmlFor="model">Model</label>
+        <input
+          id="model"
+          value={form.model}
+          onChange={(event) => updateField("model", event.target.value)}
+          placeholder="qwen2.5:7b-instruct"
+          list="model-options"
+        />
+        <datalist id="model-options">
+          {modelOptions.map((model) => (
+            <option key={model.id} value={model.id}>
+              {model.label}
+            </option>
+          ))}
+        </datalist>
+        <span className="field-hint">
+          {selectedModelKnown
+            ? "This model matches one returned by your local runtime."
+            : "Manual entry is supported if model discovery is unavailable."}
+        </span>
+      </div>
+
+      <div className="field">
+        <label htmlFor="temperature">Temperature</label>
+        <input
+          id="temperature"
+          type="number"
+          step="0.1"
+          min="0"
+          max="2"
+          value={form.temperature}
+          onChange={(event) => updateField("temperature", Number(event.target.value))}
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="maxTokens">Max tokens</label>
+        <input
+          id="maxTokens"
+          type="number"
+          min="256"
+          step="128"
+          value={form.maxTokens}
+          onChange={(event) => updateField("maxTokens", Number(event.target.value))}
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="timeoutMs">Timeout (ms)</label>
+        <input
+          id="timeoutMs"
+          type="number"
+          min="1000"
+          step="1000"
+          value={form.timeoutMs}
+          onChange={(event) => updateField("timeoutMs", Number(event.target.value))}
+        />
+      </div>
+
+      <div className="button-row">
+        <button className="button primary" disabled={isSaving} onClick={handleSave} type="button">
+          {isSaving ? "Saving..." : "Save settings"}
+        </button>
+        <button
+          className="button secondary"
+          disabled={isTesting}
+          onClick={handleTest}
+          type="button"
+        >
+          {isTesting ? "Testing..." : "Test connection"}
+        </button>
+        <button
+          className="button secondary"
+          disabled={isLoadingModels}
+          onClick={handleLoadModels}
+          type="button"
+        >
+          {isLoadingModels ? "Loading..." : "Load models"}
+        </button>
+      </div>
+
+      {status ? (
+        <div className={`status-box ${status.tone}`}>
+          <p className="status-title">{status.title}</p>
+          <p className="status-copy">{status.message}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}

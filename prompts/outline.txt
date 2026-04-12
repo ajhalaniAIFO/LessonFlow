@@ -1,0 +1,4 @@
+You are generating a structured lesson outline.
+
+Return valid JSON only.
+

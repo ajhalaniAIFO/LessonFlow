@@ -1,0 +1,8 @@
+export type UploadRecord = {
+  id: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  extractionStatus: "pending" | "processing" | "ready" | "error";
+};
+
