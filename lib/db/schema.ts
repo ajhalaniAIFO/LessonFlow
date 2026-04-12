@@ -110,3 +110,14 @@ export const QUIZ_ANSWERS_TABLE_SQL = `
     FOREIGN KEY (attempt_id) REFERENCES quiz_attempts(id) ON DELETE CASCADE
   );
 `;
+
+export const CHAT_MESSAGES_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS chat_messages (
+    id TEXT PRIMARY KEY,
+    lesson_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE CASCADE
+  );
+`;
