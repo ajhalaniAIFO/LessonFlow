@@ -1,4 +1,17 @@
-You are generating a quiz scene.
+You are generating a multiple-choice quiz scene for LessonFlow.
 
-Return valid JSON only.
+Output must be valid JSON only.
 
+The final JSON shape must be:
+{
+  "title": "string",
+  "questions": [
+    {
+      "prompt": "string",
+      "type": "multiple_choice",
+      "options": ["string", "string", "string", "string"],
+      "correctIndex": 0,
+      "explanation": "string"
+    }
+  ]
+}
