@@ -11,6 +11,7 @@ import {
   getJobSupportCopy,
   getStageState,
 } from "@/lib/server/lessons/job-progress";
+import { RegenerateLessonButton } from "@/components/lesson/regenerate-lesson-button";
 
 type Props = {
   jobId: string;
@@ -85,6 +86,15 @@ export function GenerationStatusClient({ jobId }: Props) {
             <div className="button-row">
               <Link className="button primary" href={`/lessons/${job.lessonId}`}>
                 Open lesson
+              </Link>
+            </div>
+          ) : null}
+
+          {job?.status === "error" ? (
+            <div className="button-row">
+              <RegenerateLessonButton lessonId={job.lessonId} variant="primary" label="Try again" />
+              <Link className="button secondary" href="/settings">
+                Review model settings
               </Link>
             </div>
           ) : null}
