@@ -25,6 +25,19 @@ export type QuizSceneContent = {
   questions: QuizQuestion[];
 };
 
+export type QuizAnswerSubmission = {
+  questionId: string;
+  selectedIndex: number;
+};
+
+export type QuizAnswerResult = {
+  questionId: string;
+  selectedIndex: number;
+  correctIndex: number;
+  correct: boolean;
+  explanation: string;
+};
+
 export type SceneStatus = "pending" | "ready" | "error";
 
 export type Scene = {
