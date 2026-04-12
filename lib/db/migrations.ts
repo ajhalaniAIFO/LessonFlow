@@ -22,4 +22,13 @@ export function runMigrations(db: Database.Database) {
   db.exec(QUIZ_ATTEMPTS_TABLE_SQL);
   db.exec(QUIZ_ANSWERS_TABLE_SQL);
   db.exec(CHAT_MESSAGES_TABLE_SQL);
+
+  const chatMessageColumns = db
+    .prepare("PRAGMA table_info(chat_messages)")
+    .all() as Array<{ name: string }>;
+  const hasSceneId = chatMessageColumns.some((column) => column.name === "scene_id");
+
+  if (!hasSceneId) {
+    db.exec("ALTER TABLE chat_messages ADD COLUMN scene_id TEXT REFERENCES scenes(id) ON DELETE SET NULL;");
+  }
 }

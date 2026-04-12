@@ -9,11 +9,13 @@ type SendResponse = {
 };
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ lessonId: string }> },
 ) {
   const { lessonId } = await context.params;
-  const messages = await listChatMessages(lessonId);
+  const { searchParams } = new URL(request.url);
+  const sceneId = searchParams.get("sceneId") ?? undefined;
+  const messages = await listChatMessages(lessonId, sceneId);
 
   return NextResponse.json<ApiResponse<{ messages: ChatMessage[] }>>({
     success: true,
@@ -29,8 +31,10 @@ export async function POST(
 ) {
   try {
     const { lessonId } = await context.params;
-    const payload = (await request.json()) as { content?: string };
-    const message = await sendTutorMessage(lessonId, payload.content ?? "");
+    const payload = (await request.json()) as { content?: string; sceneId?: string };
+    const message = await sendTutorMessage(lessonId, payload.content ?? "", {
+      sceneId: payload.sceneId?.trim() || undefined,
+    });
 
     return NextResponse.json<ApiResponse<SendResponse>>({
       success: true,
