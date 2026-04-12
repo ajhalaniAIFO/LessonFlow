@@ -110,7 +110,14 @@ export default async function LessonPage({
         )}
       </section>
 
-      <TutorChatClient lessonId={lesson.id} />
+      <TutorChatClient
+        lessonId={lesson.id}
+        scenes={lesson.scenes.map((scene) => ({
+          id: scene.id,
+          title: scene.title,
+          type: scene.type,
+        }))}
+      />
     </main>
   );
 }

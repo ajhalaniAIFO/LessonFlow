@@ -3,22 +3,32 @@
 import { useEffect, useState } from "react";
 import type { ApiResponse } from "@/types/api";
 import type { ChatMessage } from "@/types/chat";
+import type { Scene } from "@/types/scene";
 
 type Props = {
   lessonId: string;
+  scenes: Pick<Scene, "id" | "title" | "type">[];
 };
 
-export function TutorChatClient({ lessonId }: Props) {
+export function TutorChatClient({ lessonId, scenes }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [selectedSceneId, setSelectedSceneId] = useState<string>(scenes[0]?.id ?? "");
+
+  useEffect(() => {
+    if (!selectedSceneId && scenes[0]?.id) {
+      setSelectedSceneId(scenes[0].id);
+    }
+  }, [selectedSceneId, scenes]);
 
   useEffect(() => {
     let active = true;
 
     async function loadMessages() {
-      const response = await fetch(`/api/lessons/${lessonId}/chat`, {
+      const query = selectedSceneId ? `?sceneId=${encodeURIComponent(selectedSceneId)}` : "";
+      const response = await fetch(`/api/lessons/${lessonId}/chat${query}`, {
         cache: "no-store",
       });
       const payload = (await response.json()) as ApiResponse<{ messages: ChatMessage[] }>;
@@ -32,7 +42,7 @@ export function TutorChatClient({ lessonId }: Props) {
     return () => {
       active = false;
     };
-  }, [lessonId]);
+  }, [lessonId, selectedSceneId]);
 
   async function handleSend() {
     setIsSending(true);
@@ -45,6 +55,7 @@ export function TutorChatClient({ lessonId }: Props) {
       },
       body: JSON.stringify({
         content: draft,
+        sceneId: selectedSceneId || undefined,
       }),
     });
 
@@ -61,6 +72,7 @@ export function TutorChatClient({ lessonId }: Props) {
       {
         id: `temp-user-${Date.now()}`,
         lessonId,
+        sceneId: selectedSceneId || undefined,
         role: "user",
         content: draft,
         createdAt: Date.now(),
@@ -74,15 +86,36 @@ export function TutorChatClient({ lessonId }: Props) {
     <section className="card" style={{ marginTop: "24px" }}>
       <h2>Ask the tutor</h2>
       <div className="form-grid">
+        <div className="field">
+          <label htmlFor="chat-scene-focus">Focus scene</label>
+          <select
+            id="chat-scene-focus"
+            value={selectedSceneId}
+            onChange={(event) => setSelectedSceneId(event.target.value)}
+          >
+            {scenes.map((scene) => (
+              <option key={scene.id} value={scene.id}>
+                {scene.title} ({scene.type})
+              </option>
+            ))}
+          </select>
+          <p className="field-hint">The tutor will prioritize the scene you select here.</p>
+        </div>
+
         <div className="status-box">
           {messages.length === 0 ? (
-            <p className="status-copy">Ask a question about the current lesson and scenes.</p>
+            <p className="status-copy">Ask a question about the lesson, with extra focus on the selected scene.</p>
           ) : (
             messages.map((message) => (
               <div key={message.id} style={{ marginBottom: "12px" }}>
                 <p className="status-title" style={{ marginBottom: "4px" }}>
                   {message.role === "assistant" ? "Tutor" : "You"}
                 </p>
+                {message.sceneId ? (
+                  <p className="field-hint" style={{ margin: "0 0 4px" }}>
+                    Focused on {scenes.find((scene) => scene.id === message.sceneId)?.title ?? "selected scene"}
+                  </p>
+                ) : null}
                 <p className="status-copy">{message.content}</p>
               </div>
             ))
