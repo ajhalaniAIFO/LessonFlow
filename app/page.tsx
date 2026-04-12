@@ -1,7 +1,13 @@
 import Link from "next/link";
+import { LessonLibrary } from "@/components/home/lesson-library";
 import { LessonRequestForm } from "@/components/home/lesson-request-form";
+import { listLessons } from "@/lib/server/lessons/lesson-service";
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const lessons = await listLessons();
+
   return (
     <main className="page-shell">
       <nav className="nav">
@@ -64,6 +70,10 @@ export default function HomePage() {
             <li>Return here and generate your first lesson outline</li>
           </ul>
         </aside>
+      </section>
+
+      <section style={{ marginTop: "24px" }}>
+        <LessonLibrary lessons={lessons} />
       </section>
     </main>
   );
