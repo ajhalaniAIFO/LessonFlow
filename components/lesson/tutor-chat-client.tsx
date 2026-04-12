@@ -8,20 +8,27 @@ import type { Scene } from "@/types/scene";
 type Props = {
   lessonId: string;
   scenes: Pick<Scene, "id" | "title" | "type">[];
+  activeSceneId?: string;
 };
 
-export function TutorChatClient({ lessonId, scenes }: Props) {
+export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
-  const [selectedSceneId, setSelectedSceneId] = useState<string>(scenes[0]?.id ?? "");
+  const [selectedSceneId, setSelectedSceneId] = useState<string>(activeSceneId ?? scenes[0]?.id ?? "");
 
   useEffect(() => {
     if (!selectedSceneId && scenes[0]?.id) {
       setSelectedSceneId(scenes[0].id);
     }
   }, [selectedSceneId, scenes]);
+
+  useEffect(() => {
+    if (activeSceneId && activeSceneId !== selectedSceneId) {
+      setSelectedSceneId(activeSceneId);
+    }
+  }, [activeSceneId, selectedSceneId]);
 
   useEffect(() => {
     let active = true;
@@ -87,19 +94,15 @@ export function TutorChatClient({ lessonId, scenes }: Props) {
       <h2>Ask the tutor</h2>
       <div className="form-grid">
         <div className="field">
-          <label htmlFor="chat-scene-focus">Focus scene</label>
-          <select
-            id="chat-scene-focus"
-            value={selectedSceneId}
-            onChange={(event) => setSelectedSceneId(event.target.value)}
-          >
-            {scenes.map((scene) => (
-              <option key={scene.id} value={scene.id}>
-                {scene.title} ({scene.type})
-              </option>
-            ))}
-          </select>
-          <p className="field-hint">The tutor will prioritize the scene you select here.</p>
+          <label>Current tutor focus</label>
+          <div className="status-box" style={{ marginTop: 0 }}>
+            <p className="status-title">
+              {scenes.find((scene) => scene.id === selectedSceneId)?.title ?? "Whole lesson"}
+            </p>
+            <p className="status-copy">
+              The tutor follows the scene you are currently viewing and keeps the conversation grounded there.
+            </p>
+          </div>
         </div>
 
         <div className="status-box">
