@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { QuizSceneClient } from "@/components/lesson/quiz-scene-client";
+import { RegenerateLessonButton } from "@/components/lesson/regenerate-lesson-button";
 import { SceneProgressTracker } from "@/components/lesson/scene-progress-tracker";
 import { TutorChatClient } from "@/components/lesson/tutor-chat-client";
 import {
@@ -57,6 +58,9 @@ export default async function LessonPage({
         <span className="eyebrow">Lesson Ready</span>
         <h1>{lesson.title}</h1>
         <p>{lesson.prompt ?? "This lesson was generated from your uploaded material."}</p>
+        <div className="button-row">
+          <RegenerateLessonButton lessonId={lesson.id} variant="primary" />
+        </div>
       </section>
 
       <section className="card">

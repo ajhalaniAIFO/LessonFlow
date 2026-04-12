@@ -8,6 +8,7 @@ import * as quizGenerator from "@/lib/server/lessons/quiz-generator";
 import * as sceneGenerator from "@/lib/server/lessons/scene-generator";
 import {
   createLessonJob,
+  createLessonRegenerationJob,
   getLessonById,
   getLessonJob,
   parseCreateLessonRequest,
@@ -132,5 +133,92 @@ describe("lesson-service", () => {
 
     expect(parsed.uploadId).toBe("upload-1");
     expect(parsed.prompt).toBeUndefined();
+  });
+
+  it("creates a regeneration job for an existing lesson", async () => {
+    const firstOutlineSpy = vi.spyOn(outlineGenerator, "generateLessonOutline").mockResolvedValue({
+      title: "Thermodynamics Basics",
+      outline: [
+        { title: "What thermodynamics studies", goal: "Understand the scope", sceneType: "lesson" },
+        { title: "Quick knowledge check", goal: "Reinforce understanding", sceneType: "quiz" },
+      ],
+    });
+    const firstSceneSpy = vi.spyOn(sceneGenerator, "generateLessonScene").mockResolvedValue({
+      title: "What Thermodynamics Studies",
+      summary: "Thermodynamics explains heat, work, and energy.",
+      sections: [
+        { heading: "Core idea", body: "It studies energy transfer." },
+        { heading: "Why it matters", body: "It helps explain engines and refrigeration." },
+      ],
+      keyTakeaways: ["Energy transfer matters", "Thermodynamics is widely used"],
+    });
+    const firstQuizSpy = vi.spyOn(quizGenerator, "generateQuizScene").mockResolvedValue({
+      title: "Quick knowledge check",
+      questions: [
+        {
+          id: "quiz-q1",
+          prompt: "What does thermodynamics study?",
+          type: "multiple_choice",
+          options: ["Energy transfer", "Only gravity", "Only electricity", "Only chemistry"],
+          correctIndex: 0,
+          explanation: "Thermodynamics studies heat, work, and energy transfer.",
+        },
+      ],
+    });
+
+    const original = await createLessonJob(
+      {
+        prompt: "Teach me thermodynamics",
+        language: "en",
+      },
+      { autoProcess: false },
+    );
+    await processLessonJob(original.jobId);
+
+    firstOutlineSpy.mockReset();
+    firstSceneSpy.mockReset();
+    firstQuizSpy.mockReset();
+
+    firstOutlineSpy.mockResolvedValue({
+      title: "Thermodynamics Refreshed",
+      outline: [
+        { title: "Energy systems", goal: "Refocus the lesson", sceneType: "lesson" },
+        { title: "Quick knowledge check", goal: "Reinforce understanding", sceneType: "quiz" },
+      ],
+    });
+    firstSceneSpy.mockResolvedValue({
+      title: "Energy Systems",
+      summary: "A regenerated lesson can change the framing of the same topic.",
+      sections: [
+        { heading: "Refreshed angle", body: "This version focuses on systems and transfers." },
+        { heading: "Why regenerate", body: "It can improve clarity after a weak first pass." },
+      ],
+      keyTakeaways: ["Regeneration can refine structure", "The same lesson can be reframed"],
+    });
+    firstQuizSpy.mockResolvedValue({
+      title: "Quick knowledge check",
+      questions: [
+        {
+          id: "quiz-q2",
+          prompt: "Why might you regenerate a lesson?",
+          type: "multiple_choice",
+          options: ["To improve clarity", "To delete settings", "To stop the app", "To remove all scenes"],
+          correctIndex: 0,
+          explanation: "Regenerating can produce a better structure or explanation.",
+        },
+      ],
+    });
+
+    const regeneration = await createLessonRegenerationJob(original.lessonId, {
+      autoProcess: false,
+    });
+    await processLessonJob(regeneration.jobId);
+
+    const lesson = await getLessonById(original.lessonId);
+    expect(regeneration.lessonId).toBe(original.lessonId);
+    expect(lesson?.title).toBe("Thermodynamics Refreshed");
+    expect(lesson?.scenes).toHaveLength(2);
+    expect(lesson?.scenes[0]?.title).toBe("Energy Systems");
+    expect(firstOutlineSpy).toHaveBeenCalledTimes(1);
   });
 });

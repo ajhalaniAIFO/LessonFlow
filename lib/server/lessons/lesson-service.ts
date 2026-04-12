@@ -176,6 +176,51 @@ export async function createLessonJob(
   };
 }
 
+export async function createLessonRegenerationJob(
+  lessonId: string,
+  options?: { autoProcess?: boolean },
+) {
+  const db = getDatabase();
+  const lesson = db.prepare("SELECT * FROM lessons WHERE id = ?").get(lessonId) as LessonRow | undefined;
+
+  if (!lesson) {
+    throw new AppError("INVALID_REQUEST", "Lesson not found.");
+  }
+
+  const jobId = randomUUID();
+  const now = Date.now();
+
+  db.prepare(
+    `INSERT INTO lesson_jobs (id, lesson_id, status, stage, progress, message, error_message, created_at, updated_at)
+     VALUES (@id, @lesson_id, @status, @stage, @progress, @message, @error_message, @created_at, @updated_at)`,
+  ).run({
+    id: jobId,
+    lesson_id: lessonId,
+    status: "queued",
+    stage: "queued",
+    progress: 0,
+    message: "Queued for lesson regeneration",
+    error_message: null,
+    created_at: now,
+    updated_at: now,
+  });
+
+  db.prepare(
+    `UPDATE lessons
+     SET status = ?, error_message = ?, last_viewed_scene_order = ?, updated_at = ?
+     WHERE id = ?`,
+  ).run("generating", null, null, now, lessonId);
+
+  if (options?.autoProcess !== false) {
+    void processLessonJob(jobId);
+  }
+
+  return {
+    lessonId,
+    jobId,
+  };
+}
+
 export async function processLessonJob(jobId: string) {
   const db = getDatabase();
   const job = db
