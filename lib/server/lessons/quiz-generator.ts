@@ -5,10 +5,14 @@ import { getProvider } from "@/lib/server/llm/provider-registry";
 import type { LLMProvider } from "@/lib/server/llm/types";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
 import { AppError } from "@/lib/server/utils/errors";
+import type { QuizSceneContent } from "@/types/scene";
 import {
   quizSceneResponseSchema,
-  type QuizSceneResponse,
 } from "@/lib/server/validation/quiz-scene-schema";
+
+type GeneratedQuizScene = QuizSceneContent & {
+  title: string;
+};
 
 async function loadPromptTemplate() {
   const filePath = path.join(process.cwd(), "prompts", "quiz-scene.txt");
@@ -26,7 +30,7 @@ export async function generateQuizScene(
     language: string;
   },
   providerOverride?: LLMProvider,
-): Promise<QuizSceneResponse> {
+): Promise<GeneratedQuizScene> {
   const settings = await getModelSettings();
   const provider = providerOverride ?? getProvider(settings.provider);
   const template = await loadPromptTemplate();
