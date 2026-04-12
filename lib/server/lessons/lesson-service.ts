@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { getDatabase } from "@/lib/db/client";
 import { generateLessonOutline } from "@/lib/server/lessons/outline-generator";
+import { generateQuizScene } from "@/lib/server/lessons/quiz-generator";
 import { generateLessonScene } from "@/lib/server/lessons/scene-generator";
 import { AppError } from "@/lib/server/utils/errors";
 import type { Lesson, OutlineItem, CreateLessonRequest } from "@/types/lesson";
@@ -236,11 +237,14 @@ export async function processLessonJob(jobId: string) {
       });
     });
 
-    const firstOutlineRow = db
-      .prepare("SELECT * FROM outline_items WHERE lesson_id = ? ORDER BY display_order ASC LIMIT 1")
-      .get(lesson.id) as OutlineRow | undefined;
+    const outlineRows = db
+      .prepare("SELECT * FROM outline_items WHERE lesson_id = ? ORDER BY display_order ASC")
+      .all(lesson.id) as OutlineRow[];
+    const firstOutlineRow = outlineRows.find((row) => row.scene_type === "lesson");
+    let firstSceneSummary: string | undefined;
+    let firstSceneTakeaways: string[] | undefined;
 
-    if (firstOutlineRow && firstOutlineRow.scene_type === "lesson") {
+    if (firstOutlineRow) {
       updateJob.run({
         id: jobId,
         status: "generating_scenes",
@@ -251,23 +255,65 @@ export async function processLessonJob(jobId: string) {
         updated_at: Date.now(),
       });
 
-      const scene = await generateLessonScene({
+      if (firstOutlineRow.scene_type === "lesson") {
+        const scene = await generateLessonScene({
+          lessonTitle: outline.title,
+          lessonPrompt: lesson.prompt ?? "",
+          outlineTitle: firstOutlineRow.title,
+          outlineGoal: firstOutlineRow.goal ?? undefined,
+          language: lesson.language,
+        });
+
+        firstSceneSummary = scene.summary;
+        firstSceneTakeaways = scene.keyTakeaways;
+
+        insertScene.run({
+          id: randomUUID(),
+          lesson_id: lesson.id,
+          outline_item_id: firstOutlineRow.id,
+          type: "lesson",
+          title: scene.title,
+          display_order: firstOutlineRow.display_order,
+          status: "ready",
+          content_json: JSON.stringify(scene),
+          error_message: null,
+          created_at: now,
+          updated_at: now,
+        });
+      }
+    }
+
+    const quizOutlineRow = outlineRows.find((row) => row.scene_type === "quiz");
+    if (quizOutlineRow) {
+      updateJob.run({
+        id: jobId,
+        status: "generating_quizzes",
+        stage: "generating_quizzes",
+        progress: 88,
+        message: "Generating quiz scene",
+        error_message: null,
+        updated_at: Date.now(),
+      });
+
+      const quizScene = await generateQuizScene({
         lessonTitle: outline.title,
         lessonPrompt: lesson.prompt ?? "",
-        outlineTitle: firstOutlineRow.title,
-        outlineGoal: firstOutlineRow.goal ?? undefined,
+        outlineTitle: quizOutlineRow.title,
+        outlineGoal: quizOutlineRow.goal ?? undefined,
+        sceneSummary: firstSceneSummary,
+        keyTakeaways: firstSceneTakeaways,
         language: lesson.language,
       });
 
       insertScene.run({
         id: randomUUID(),
         lesson_id: lesson.id,
-        outline_item_id: firstOutlineRow.id,
-        type: "lesson",
-        title: scene.title,
-        display_order: 1,
+        outline_item_id: quizOutlineRow.id,
+        type: "quiz",
+        title: quizScene.title,
+        display_order: quizOutlineRow.display_order,
         status: "ready",
-        content_json: JSON.stringify(scene),
+        content_json: JSON.stringify(quizScene),
         error_message: null,
         created_at: now,
         updated_at: now,
@@ -287,7 +333,7 @@ export async function processLessonJob(jobId: string) {
       status: "ready",
       stage: "ready",
       progress: 100,
-      message: "Outline ready",
+      message: "Outline, first lesson scene, and quiz scene are ready",
       error_message: null,
       updated_at: now,
     });

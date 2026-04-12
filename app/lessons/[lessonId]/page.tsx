@@ -55,7 +55,7 @@ export default async function LessonPage({
       </section>
 
       <section className="card">
-        <h2>First generated scene</h2>
+        <h2>Generated scenes</h2>
         {lesson.scenes.length === 0 ? (
           <p>No scene content has been generated yet.</p>
         ) : (
@@ -88,6 +88,30 @@ export default async function LessonPage({
                       </ul>
                     </>
                   ) : null}
+                </>
+              ) : scene.content && "questions" in scene.content ? (
+                <>
+                  {scene.content.questions.map((question, index) => (
+                    <div key={question.id} style={{ marginBottom: "16px" }}>
+                      <strong>
+                        Q{index + 1}. {question.prompt}
+                      </strong>
+                      <ul className="meta-list">
+                        {question.options.map((option, optionIndex) => (
+                          <li key={option}>
+                            {String.fromCharCode(65 + optionIndex)}. {option}
+                          </li>
+                        ))}
+                      </ul>
+                      <p>
+                        <strong>Answer:</strong>{" "}
+                        {String.fromCharCode(65 + question.correctIndex)}
+                      </p>
+                      <p>
+                        <strong>Why:</strong> {question.explanation}
+                      </p>
+                    </div>
+                  ))}
                 </>
               ) : (
                 <p>Scene content is not available yet.</p>
