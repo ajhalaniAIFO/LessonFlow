@@ -172,6 +172,7 @@ export default async function LessonPage({
           title: scene.title,
           type: scene.type,
         }))}
+        activeSceneId={activeScene?.id}
       />
     </main>
   );
