@@ -18,6 +18,7 @@ type LessonRow = {
   language: string;
   status: Lesson["status"];
   error_message: string | null;
+  last_viewed_scene_order: number | null;
   created_at: number;
   updated_at: number;
 };
@@ -76,6 +77,7 @@ function mapLesson(row: LessonRow, outline: OutlineRow[], scenes: SceneRow[]): L
     language: row.language,
     status: row.status,
     errorMessage: row.error_message ?? undefined,
+    lastViewedSceneOrder: row.last_viewed_scene_order ?? undefined,
     outline: outline
       .sort((a, b) => a.display_order - b.display_order)
       .map((item) => ({
@@ -134,7 +136,7 @@ export async function createLessonJob(
   const db = getDatabase();
 
   db.prepare(
-    `INSERT INTO lessons (id, title, prompt, source_upload_id, source_type, language, status, error_message, created_at, updated_at)
+      `INSERT INTO lessons (id, title, prompt, source_upload_id, source_type, language, status, error_message, created_at, updated_at)
      VALUES (@id, @title, @prompt, @source_upload_id, @source_type, @language, @status, @error_message, @created_at, @updated_at)`,
   ).run({
     id: lessonId,
@@ -391,10 +393,11 @@ export async function listLessons(): Promise<LessonListItem[]> {
   const rows = db
     .prepare(
       `SELECT lessons.id, lessons.title, lessons.status, lessons.updated_at,
+              lessons.last_viewed_scene_order,
               COUNT(scenes.id) AS scene_count
        FROM lessons
        LEFT JOIN scenes ON scenes.lesson_id = lessons.id
-       GROUP BY lessons.id, lessons.title, lessons.status, lessons.updated_at
+       GROUP BY lessons.id, lessons.title, lessons.status, lessons.updated_at, lessons.last_viewed_scene_order
        ORDER BY lessons.updated_at DESC`,
     )
     .all() as Array<{
@@ -403,6 +406,7 @@ export async function listLessons(): Promise<LessonListItem[]> {
     status: Lesson["status"];
     updated_at: number;
     scene_count: number;
+    last_viewed_scene_order: number | null;
   }>;
 
   return rows.map((row) => ({
@@ -410,8 +414,24 @@ export async function listLessons(): Promise<LessonListItem[]> {
     title: row.title,
     status: row.status,
     sceneCount: row.scene_count,
+    lastViewedSceneOrder: row.last_viewed_scene_order ?? undefined,
     updatedAt: row.updated_at,
   }));
+}
+
+export async function rememberLessonProgress(lessonId: string, sceneOrder: number) {
+  if (!Number.isInteger(sceneOrder) || sceneOrder < 1) {
+    throw new AppError("INVALID_REQUEST", "A valid scene order is required.");
+  }
+
+  const db = getDatabase();
+  const result = db
+    .prepare("UPDATE lessons SET last_viewed_scene_order = ?, updated_at = ? WHERE id = ?")
+    .run(sceneOrder, Date.now(), lessonId);
+
+  if (result.changes === 0) {
+    throw new AppError("INVALID_REQUEST", "Lesson not found.");
+  }
 }
 
 export async function renameLesson(lessonId: string, nextTitle: string) {

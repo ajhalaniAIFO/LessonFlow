@@ -23,6 +23,15 @@ export function runMigrations(db: Database.Database) {
   db.exec(QUIZ_ANSWERS_TABLE_SQL);
   db.exec(CHAT_MESSAGES_TABLE_SQL);
 
+  const lessonColumns = db.prepare("PRAGMA table_info(lessons)").all() as Array<{ name: string }>;
+  const hasLastViewedSceneOrder = lessonColumns.some(
+    (column) => column.name === "last_viewed_scene_order",
+  );
+
+  if (!hasLastViewedSceneOrder) {
+    db.exec("ALTER TABLE lessons ADD COLUMN last_viewed_scene_order INTEGER;");
+  }
+
   const chatMessageColumns = db
     .prepare("PRAGMA table_info(chat_messages)")
     .all() as Array<{ name: string }>;

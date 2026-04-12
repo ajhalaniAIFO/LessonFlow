@@ -19,6 +19,7 @@ export type Lesson = {
   status: LessonStatus;
   outline: OutlineItem[];
   scenes: Scene[];
+  lastViewedSceneOrder?: number;
   errorMessage?: string;
   createdAt: number;
   updatedAt: number;
@@ -35,5 +36,6 @@ export type LessonListItem = {
   title: string;
   status: LessonStatus;
   sceneCount: number;
+  lastViewedSceneOrder?: number;
   updatedAt: number;
 };

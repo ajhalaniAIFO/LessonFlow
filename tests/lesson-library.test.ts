@@ -6,6 +6,7 @@ import { getDatabase, resetDatabase } from "@/lib/db/client";
 import {
   deleteLessonById,
   listLessons,
+  rememberLessonProgress,
   renameLesson,
 } from "@/lib/server/lessons/lesson-service";
 
@@ -23,26 +24,27 @@ describe("lesson-library service", () => {
   it("lists lessons ordered by most recently updated", async () => {
     const db = getDatabase();
     db.prepare(
-      `INSERT INTO lessons (id, title, prompt, source_type, language, status, error_message, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run("lesson-1", "First lesson", "Prompt 1", "prompt", "en", "ready", null, 100, 100);
+      `INSERT INTO lessons (id, title, prompt, source_type, language, status, error_message, last_viewed_scene_order, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run("lesson-1", "First lesson", "Prompt 1", "prompt", "en", "ready", null, null, 100, 100);
     db.prepare(
-      `INSERT INTO lessons (id, title, prompt, source_type, language, status, error_message, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run("lesson-2", "Second lesson", "Prompt 2", "prompt", "en", "ready", null, 200, 300);
+      `INSERT INTO lessons (id, title, prompt, source_type, language, status, error_message, last_viewed_scene_order, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run("lesson-2", "Second lesson", "Prompt 2", "prompt", "en", "ready", null, 3, 200, 300);
 
     const lessons = await listLessons();
 
     expect(lessons[0]?.id).toBe("lesson-2");
+    expect(lessons[0]?.lastViewedSceneOrder).toBe(3);
     expect(lessons[1]?.id).toBe("lesson-1");
   });
 
   it("renames a lesson", async () => {
     const db = getDatabase();
     db.prepare(
-      `INSERT INTO lessons (id, title, prompt, source_type, language, status, error_message, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run("lesson-1", "Original title", "Prompt 1", "prompt", "en", "ready", null, 100, 100);
+      `INSERT INTO lessons (id, title, prompt, source_type, language, status, error_message, last_viewed_scene_order, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run("lesson-1", "Original title", "Prompt 1", "prompt", "en", "ready", null, null, 100, 100);
 
     await renameLesson("lesson-1", "Updated title");
     const updated = await listLessons();
@@ -53,13 +55,26 @@ describe("lesson-library service", () => {
   it("deletes a lesson", async () => {
     const db = getDatabase();
     db.prepare(
-      `INSERT INTO lessons (id, title, prompt, source_type, language, status, error_message, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run("lesson-1", "Disposable lesson", "Prompt 1", "prompt", "en", "ready", null, 100, 100);
+      `INSERT INTO lessons (id, title, prompt, source_type, language, status, error_message, last_viewed_scene_order, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run("lesson-1", "Disposable lesson", "Prompt 1", "prompt", "en", "ready", null, null, 100, 100);
 
     await deleteLessonById("lesson-1");
     const lessons = await listLessons();
 
     expect(lessons).toHaveLength(0);
+  });
+
+  it("remembers the last viewed scene for a lesson", async () => {
+    const db = getDatabase();
+    db.prepare(
+      `INSERT INTO lessons (id, title, prompt, source_type, language, status, error_message, last_viewed_scene_order, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run("lesson-1", "Tracked lesson", "Prompt 1", "prompt", "en", "ready", null, null, 100, 100);
+
+    await rememberLessonProgress("lesson-1", 4);
+    const lessons = await listLessons();
+
+    expect(lessons[0]?.lastViewedSceneOrder).toBe(4);
   });
 });
