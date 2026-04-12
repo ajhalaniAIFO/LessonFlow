@@ -38,7 +38,7 @@ export default async function LessonPage({
       </nav>
 
       <section className="hero">
-        <span className="eyebrow">Outline Ready</span>
+        <span className="eyebrow">Lesson Ready</span>
         <h1>{lesson.title}</h1>
         <p>{lesson.prompt}</p>
       </section>
@@ -58,6 +58,10 @@ export default async function LessonPage({
 
       <section className="card">
         <h2>Generated scenes</h2>
+        <p>
+          {lesson.scenes.length} scene{lesson.scenes.length === 1 ? "" : "s"} generated from{" "}
+          {lesson.outline.length} outline item{lesson.outline.length === 1 ? "" : "s"}.
+        </p>
         {lesson.scenes.length === 0 ? (
           <p>No scene content has been generated yet.</p>
         ) : (

@@ -43,15 +43,26 @@ describe("lesson-service", () => {
         { title: "Quick knowledge check", goal: "Reinforce understanding", sceneType: "quiz" },
       ],
     });
-    const sceneSpy = vi.spyOn(sceneGenerator, "generateLessonScene").mockResolvedValue({
-      title: "What Thermodynamics Studies",
-      summary: "Thermodynamics explains heat, work, and energy.",
-      sections: [
-        { heading: "Core idea", body: "It studies energy transfer." },
-        { heading: "Why it matters", body: "It helps explain engines and refrigeration." },
-      ],
-      keyTakeaways: ["Energy transfer matters", "Thermodynamics is widely used"],
-    });
+    const sceneSpy = vi
+      .spyOn(sceneGenerator, "generateLessonScene")
+      .mockResolvedValueOnce({
+        title: "What Thermodynamics Studies",
+        summary: "Thermodynamics explains heat, work, and energy.",
+        sections: [
+          { heading: "Core idea", body: "It studies energy transfer." },
+          { heading: "Why it matters", body: "It helps explain engines and refrigeration." },
+        ],
+        keyTakeaways: ["Energy transfer matters", "Thermodynamics is widely used"],
+      })
+      .mockResolvedValueOnce({
+        title: "Energy, Heat, and Work",
+        summary: "Heat and work are two ways energy moves between systems.",
+        sections: [
+          { heading: "Heat", body: "Heat is energy transfer driven by temperature difference." },
+          { heading: "Work", body: "Work transfers energy through force and motion." },
+        ],
+        keyTakeaways: ["Heat and work move energy", "Both concepts are central to thermodynamics"],
+      });
     const quizSpy = vi.spyOn(quizGenerator, "generateQuizScene").mockResolvedValue({
       title: "Quick knowledge check",
       questions: [
@@ -80,9 +91,11 @@ describe("lesson-service", () => {
 
     expect(lesson?.title).toBe("Thermodynamics Basics");
     expect(lesson?.outline).toHaveLength(3);
-    expect(lesson?.scenes).toHaveLength(2);
+    expect(lesson?.scenes).toHaveLength(3);
     expect(lesson?.scenes[0]?.title).toBe("What Thermodynamics Studies");
-    expect(lesson?.scenes[1]?.type).toBe("quiz");
+    expect(lesson?.scenes[1]?.title).toBe("Energy, Heat, and Work");
+    expect(lesson?.scenes[2]?.type).toBe("quiz");
+    expect(sceneSpy).toHaveBeenCalledTimes(2);
     expect(job?.status).toBe("ready");
     spy.mockRestore();
     sceneSpy.mockRestore();
