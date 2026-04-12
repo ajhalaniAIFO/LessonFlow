@@ -12,7 +12,7 @@ async function loadPromptTemplate() {
 }
 
 export async function generateLessonOutline(
-  input: { prompt: string; language: string },
+  input: { prompt: string; language: string; sourceText?: string },
   providerOverride?: LLMProvider,
 ): Promise<OutlineResponse> {
   const settings = await getModelSettings();
@@ -32,7 +32,10 @@ Requirements:
 - Language: ${input.language}
 
 Learning request:
-${input.prompt}`;
+${input.prompt}
+
+Source material:
+${input.sourceText?.trim() ? input.sourceText : "No uploaded source material provided."}`;
 
   let parsed: unknown;
   try {

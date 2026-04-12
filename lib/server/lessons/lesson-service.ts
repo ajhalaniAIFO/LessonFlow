@@ -3,6 +3,7 @@ import { getDatabase } from "@/lib/db/client";
 import { generateLessonOutline } from "@/lib/server/lessons/outline-generator";
 import { generateQuizScene } from "@/lib/server/lessons/quiz-generator";
 import { generateLessonScene } from "@/lib/server/lessons/scene-generator";
+import { getUploadById } from "@/lib/server/uploads/upload-service";
 import { AppError } from "@/lib/server/utils/errors";
 import type { Lesson, LessonListItem, OutlineItem, CreateLessonRequest } from "@/types/lesson";
 import type { LessonJob, LessonJobStatus } from "@/types/job";
@@ -12,6 +13,7 @@ type LessonRow = {
   id: string;
   title: string;
   prompt: string | null;
+  source_upload_id: string | null;
   source_type: Lesson["sourceType"];
   language: string;
   status: Lesson["status"];
@@ -109,14 +111,16 @@ export function parseCreateLessonRequest(input: unknown): CreateLessonRequest {
   const raw = input as Record<string, unknown>;
   const prompt = String(raw.prompt ?? "").trim();
   const language = String(raw.language ?? "en").trim() || "en";
+  const uploadId = raw.uploadId ? String(raw.uploadId).trim() : undefined;
 
-  if (!prompt) {
-    throw new AppError("INVALID_REQUEST", "A lesson prompt is required.");
+  if (!prompt && !uploadId) {
+    throw new AppError("INVALID_REQUEST", "Provide a lesson prompt or an uploaded document.");
   }
 
   return {
-    prompt,
+    prompt: prompt || undefined,
     language,
+    uploadId,
   };
 }
 
@@ -130,13 +134,14 @@ export async function createLessonJob(
   const db = getDatabase();
 
   db.prepare(
-    `INSERT INTO lessons (id, title, prompt, source_type, language, status, error_message, created_at, updated_at)
-     VALUES (@id, @title, @prompt, @source_type, @language, @status, @error_message, @created_at, @updated_at)`,
+    `INSERT INTO lessons (id, title, prompt, source_upload_id, source_type, language, status, error_message, created_at, updated_at)
+     VALUES (@id, @title, @prompt, @source_upload_id, @source_type, @language, @status, @error_message, @created_at, @updated_at)`,
   ).run({
     id: lessonId,
     title: "Generating lesson...",
-    prompt: input.prompt,
-    source_type: "prompt",
+    prompt: input.prompt ?? null,
+    source_upload_id: input.uploadId ?? null,
+    source_type: input.prompt && input.uploadId ? "prompt_and_document" : input.uploadId ? "document" : "prompt",
     language: input.language,
     status: "generating",
     error_message: null,
@@ -218,8 +223,11 @@ export async function processLessonJob(jobId: string) {
     });
 
     const outline = await generateLessonOutline({
-      prompt: lesson.prompt ?? "",
+      prompt: lesson.prompt ?? "Teach me the key ideas from the uploaded material.",
       language: lesson.language,
+      sourceText: lesson.source_upload_id
+        ? (await getUploadById(lesson.source_upload_id))?.extractedText
+        : undefined,
     });
 
     db.prepare("DELETE FROM outline_items WHERE lesson_id = ?").run(lesson.id);

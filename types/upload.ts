@@ -4,5 +4,7 @@ export type UploadRecord = {
   mimeType: string;
   sizeBytes: number;
   extractionStatus: "pending" | "processing" | "ready" | "error";
+  extractedText?: string;
+  storagePath?: string;
+  errorMessage?: string;
 };
-

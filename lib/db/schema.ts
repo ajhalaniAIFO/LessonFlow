@@ -6,17 +6,34 @@ export const SETTINGS_TABLE_SQL = `
   );
 `;
 
+export const UPLOADS_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS uploads (
+    id TEXT PRIMARY KEY,
+    filename TEXT NOT NULL,
+    mime_type TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    storage_path TEXT NOT NULL,
+    extracted_text TEXT,
+    extraction_status TEXT NOT NULL,
+    error_message TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+`;
+
 export const LESSONS_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS lessons (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     prompt TEXT,
+    source_upload_id TEXT,
     source_type TEXT NOT NULL,
     language TEXT NOT NULL,
     status TEXT NOT NULL,
     error_message TEXT,
     created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (source_upload_id) REFERENCES uploads(id) ON DELETE SET NULL
   );
 `;
 
