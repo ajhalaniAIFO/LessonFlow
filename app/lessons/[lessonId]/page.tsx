@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { QuizSceneClient } from "@/components/lesson/quiz-scene-client";
 import { getLessonById } from "@/lib/server/lessons/lesson-service";
 
 export const dynamic = "force-dynamic";
@@ -90,29 +91,12 @@ export default async function LessonPage({
                   ) : null}
                 </>
               ) : scene.content && "questions" in scene.content ? (
-                <>
-                  {scene.content.questions.map((question, index) => (
-                    <div key={question.id} style={{ marginBottom: "16px" }}>
-                      <strong>
-                        Q{index + 1}. {question.prompt}
-                      </strong>
-                      <ul className="meta-list">
-                        {question.options.map((option, optionIndex) => (
-                          <li key={option}>
-                            {String.fromCharCode(65 + optionIndex)}. {option}
-                          </li>
-                        ))}
-                      </ul>
-                      <p>
-                        <strong>Answer:</strong>{" "}
-                        {String.fromCharCode(65 + question.correctIndex)}
-                      </p>
-                      <p>
-                        <strong>Why:</strong> {question.explanation}
-                      </p>
-                    </div>
-                  ))}
-                </>
+                <QuizSceneClient
+                  lessonId={lesson.id}
+                  sceneId={scene.id}
+                  title={scene.title}
+                  content={scene.content}
+                />
               ) : (
                 <p>Scene content is not available yet.</p>
               )}

@@ -66,3 +66,30 @@ export const SCENES_TABLE_SQL = `
     FOREIGN KEY (outline_item_id) REFERENCES outline_items(id) ON DELETE CASCADE
   );
 `;
+
+export const QUIZ_ATTEMPTS_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS quiz_attempts (
+    id TEXT PRIMARY KEY,
+    lesson_id TEXT NOT NULL,
+    scene_id TEXT NOT NULL,
+    score_correct INTEGER NOT NULL,
+    score_total INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE CASCADE,
+    FOREIGN KEY (scene_id) REFERENCES scenes(id) ON DELETE CASCADE
+  );
+`;
+
+export const QUIZ_ANSWERS_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS quiz_answers (
+    id TEXT PRIMARY KEY,
+    attempt_id TEXT NOT NULL,
+    question_id TEXT NOT NULL,
+    selected_index INTEGER NOT NULL,
+    correct_index INTEGER NOT NULL,
+    is_correct INTEGER NOT NULL,
+    explanation TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (attempt_id) REFERENCES quiz_attempts(id) ON DELETE CASCADE
+  );
+`;
