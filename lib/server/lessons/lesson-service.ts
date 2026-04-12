@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { getDatabase } from "@/lib/db/client";
 import { generateLessonOutline } from "@/lib/server/lessons/outline-generator";
+import { generateLessonScene } from "@/lib/server/lessons/scene-generator";
 import { AppError } from "@/lib/server/utils/errors";
 import type { Lesson, OutlineItem, CreateLessonRequest } from "@/types/lesson";
 import type { LessonJob, LessonJobStatus } from "@/types/job";
+import type { Scene } from "@/types/scene";
 
 type LessonRow = {
   id: string;
@@ -36,7 +38,33 @@ type JobRow = {
   error_message: string | null;
 };
 
-function mapLesson(row: LessonRow, outline: OutlineRow[]): Lesson {
+type SceneRow = {
+  id: string;
+  lesson_id: string;
+  outline_item_id: string;
+  type: Scene["type"];
+  title: string;
+  display_order: number;
+  status: Scene["status"];
+  content_json: string | null;
+  error_message: string | null;
+};
+
+function mapScene(row: SceneRow): Scene {
+  return {
+    id: row.id,
+    lessonId: row.lesson_id,
+    outlineItemId: row.outline_item_id,
+    type: row.type,
+    title: row.title,
+    order: row.display_order,
+    status: row.status,
+    content: row.content_json ? JSON.parse(row.content_json) : undefined,
+    errorMessage: row.error_message ?? undefined,
+  };
+}
+
+function mapLesson(row: LessonRow, outline: OutlineRow[], scenes: SceneRow[]): Lesson {
   return {
     id: row.id,
     title: row.title,
@@ -54,6 +82,7 @@ function mapLesson(row: LessonRow, outline: OutlineRow[]): Lesson {
         sceneType: item.scene_type,
         order: item.display_order,
       })),
+    scenes: scenes.sort((a, b) => a.display_order - b.display_order).map(mapScene),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -171,6 +200,10 @@ export async function processLessonJob(jobId: string) {
     `INSERT INTO outline_items (id, lesson_id, title, goal, scene_type, display_order, created_at, updated_at)
      VALUES (@id, @lesson_id, @title, @goal, @scene_type, @display_order, @created_at, @updated_at)`,
   );
+  const insertScene = db.prepare(
+    `INSERT INTO scenes (id, lesson_id, outline_item_id, type, title, display_order, status, content_json, error_message, created_at, updated_at)
+     VALUES (@id, @lesson_id, @outline_item_id, @type, @title, @display_order, @status, @content_json, @error_message, @created_at, @updated_at)`,
+  );
 
   try {
     updateJob.run({
@@ -202,6 +235,44 @@ export async function processLessonJob(jobId: string) {
         updated_at: now,
       });
     });
+
+    const firstOutlineRow = db
+      .prepare("SELECT * FROM outline_items WHERE lesson_id = ? ORDER BY display_order ASC LIMIT 1")
+      .get(lesson.id) as OutlineRow | undefined;
+
+    if (firstOutlineRow && firstOutlineRow.scene_type === "lesson") {
+      updateJob.run({
+        id: jobId,
+        status: "generating_scenes",
+        stage: "generating_scenes",
+        progress: 70,
+        message: "Generating the first lesson scene",
+        error_message: null,
+        updated_at: Date.now(),
+      });
+
+      const scene = await generateLessonScene({
+        lessonTitle: outline.title,
+        lessonPrompt: lesson.prompt ?? "",
+        outlineTitle: firstOutlineRow.title,
+        outlineGoal: firstOutlineRow.goal ?? undefined,
+        language: lesson.language,
+      });
+
+      insertScene.run({
+        id: randomUUID(),
+        lesson_id: lesson.id,
+        outline_item_id: firstOutlineRow.id,
+        type: "lesson",
+        title: scene.title,
+        display_order: 1,
+        status: "ready",
+        content_json: JSON.stringify(scene),
+        error_message: null,
+        created_at: now,
+        updated_at: now,
+      });
+    }
 
     updateLesson.run({
       id: lesson.id,
@@ -256,5 +327,8 @@ export async function getLessonById(lessonId: string): Promise<Lesson | null> {
   const outline = db
     .prepare("SELECT * FROM outline_items WHERE lesson_id = ? ORDER BY display_order ASC")
     .all(lessonId) as OutlineRow[];
-  return mapLesson(lesson, outline);
+  const scenes = db
+    .prepare("SELECT * FROM scenes WHERE lesson_id = ? ORDER BY display_order ASC")
+    .all(lessonId) as SceneRow[];
+  return mapLesson(lesson, outline, scenes);
 }

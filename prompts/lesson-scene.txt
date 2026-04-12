@@ -1,4 +1,17 @@
-You are generating a lesson scene.
+You are generating a teaching scene for LessonFlow.
 
-Return valid JSON only.
+Output must be valid JSON only.
 
+The final JSON shape must be:
+{
+  "title": "string",
+  "summary": "string",
+  "sections": [
+    {
+      "heading": "string",
+      "body": "string",
+      "bullets": ["string"]
+    }
+  ],
+  "keyTakeaways": ["string"]
+}

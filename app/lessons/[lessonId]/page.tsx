@@ -53,6 +53,49 @@ export default async function LessonPage({
           ))}
         </ol>
       </section>
+
+      <section className="card">
+        <h2>First generated scene</h2>
+        {lesson.scenes.length === 0 ? (
+          <p>No scene content has been generated yet.</p>
+        ) : (
+          lesson.scenes.map((scene) => (
+            <article key={scene.id} style={{ marginBottom: "20px" }}>
+              <h3>{scene.title}</h3>
+              {"content" in scene && scene.content && "summary" in scene.content ? (
+                <>
+                  <p>{scene.content.summary}</p>
+                  {scene.content.sections.map((section) => (
+                    <div key={section.heading} style={{ marginBottom: "16px" }}>
+                      <strong>{section.heading}</strong>
+                      <p>{section.body}</p>
+                      {section.bullets?.length ? (
+                        <ul className="meta-list">
+                          {section.bullets.map((bullet) => (
+                            <li key={bullet}>{bullet}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ))}
+                  {scene.content.keyTakeaways?.length ? (
+                    <>
+                      <strong>Key takeaways</strong>
+                      <ul className="meta-list">
+                        {scene.content.keyTakeaways.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
+                </>
+              ) : (
+                <p>Scene content is not available yet.</p>
+              )}
+            </article>
+          ))
+        )}
+      </section>
     </main>
   );
 }
