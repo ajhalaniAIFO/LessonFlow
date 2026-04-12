@@ -1,16 +1,23 @@
 import Link from "next/link";
 import { QuizSceneClient } from "@/components/lesson/quiz-scene-client";
 import { TutorChatClient } from "@/components/lesson/tutor-chat-client";
+import {
+  getSceneProgressLabel,
+  resolveSceneIndex,
+} from "@/lib/server/lessons/scene-navigation";
 import { getLessonById } from "@/lib/server/lessons/lesson-service";
 
 export const dynamic = "force-dynamic";
 
 export default async function LessonPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ lessonId: string }>;
+  searchParams: Promise<{ scene?: string }>;
 }) {
   const { lessonId } = await params;
+  const { scene: rawScene } = await searchParams;
   const lesson = await getLessonById(lessonId);
 
   if (!lesson) {
@@ -20,6 +27,10 @@ export default async function LessonPage({
       </main>
     );
   }
+
+  const activeSceneIndex = resolveSceneIndex(rawScene, lesson.scenes.length);
+  const activeScene = activeSceneIndex >= 0 ? lesson.scenes[activeSceneIndex] : null;
+  const activeSceneStep = activeSceneIndex + 1;
 
   return (
     <main className="page-shell">
@@ -40,7 +51,7 @@ export default async function LessonPage({
       <section className="hero">
         <span className="eyebrow">Lesson Ready</span>
         <h1>{lesson.title}</h1>
-        <p>{lesson.prompt}</p>
+        <p>{lesson.prompt ?? "This lesson was generated from your uploaded material."}</p>
       </section>
 
       <section className="card">
@@ -56,58 +67,102 @@ export default async function LessonPage({
         </ol>
       </section>
 
-      <section className="card">
-        <h2>Generated scenes</h2>
-        <p>
-          {lesson.scenes.length} scene{lesson.scenes.length === 1 ? "" : "s"} generated from{" "}
-          {lesson.outline.length} outline item{lesson.outline.length === 1 ? "" : "s"}.
-        </p>
-        {lesson.scenes.length === 0 ? (
-          <p>No scene content has been generated yet.</p>
-        ) : (
-          lesson.scenes.map((scene) => (
-            <article key={scene.id} style={{ marginBottom: "20px" }}>
-              <h3>{scene.title}</h3>
-              {"content" in scene && scene.content && "summary" in scene.content ? (
-                <>
-                  <p>{scene.content.summary}</p>
-                  {scene.content.sections.map((section) => (
-                    <div key={section.heading} style={{ marginBottom: "16px" }}>
-                      <strong>{section.heading}</strong>
-                      <p>{section.body}</p>
-                      {section.bullets?.length ? (
+      <section className="lesson-layout">
+        <aside className="card scene-sidebar">
+          <h2>Lesson path</h2>
+          <p>
+            {lesson.scenes.length} scene{lesson.scenes.length === 1 ? "" : "s"} generated from{" "}
+            {lesson.outline.length} outline item{lesson.outline.length === 1 ? "" : "s"}.
+          </p>
+          {lesson.scenes.length === 0 ? (
+            <p>No scene content has been generated yet.</p>
+          ) : (
+            <ol className="scene-step-list">
+              {lesson.scenes.map((scene, index) => (
+                <li key={scene.id}>
+                  <Link
+                    className={`scene-step-link ${index === activeSceneIndex ? "active" : ""}`}
+                    href={`/lessons/${lesson.id}?scene=${index + 1}`}
+                  >
+                    <span className="scene-step-order">{index + 1}</span>
+                    <span>
+                      <strong>{scene.title}</strong>
+                      <small>{scene.type === "lesson" ? "Teaching scene" : "Quiz scene"}</small>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          )}
+        </aside>
+
+        <section className="card scene-stage">
+          <h2>Current scene</h2>
+          {activeScene ? (
+            <>
+              <span className="eyebrow">{getSceneProgressLabel(activeSceneIndex, lesson.scenes)}</span>
+              <article className="scene-article">
+                <h3>{activeScene.title}</h3>
+                {"content" in activeScene && activeScene.content && "summary" in activeScene.content ? (
+                  <>
+                    <p>{activeScene.content.summary}</p>
+                    {activeScene.content.sections.map((section) => (
+                      <div key={section.heading} className="scene-section">
+                        <strong>{section.heading}</strong>
+                        <p>{section.body}</p>
+                        {section.bullets?.length ? (
+                          <ul className="meta-list">
+                            {section.bullets.map((bullet) => (
+                              <li key={bullet}>{bullet}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </div>
+                    ))}
+                    {activeScene.content.keyTakeaways?.length ? (
+                      <>
+                        <strong>Key takeaways</strong>
                         <ul className="meta-list">
-                          {section.bullets.map((bullet) => (
-                            <li key={bullet}>{bullet}</li>
+                          {activeScene.content.keyTakeaways.map((item) => (
+                            <li key={item}>{item}</li>
                           ))}
                         </ul>
-                      ) : null}
-                    </div>
-                  ))}
-                  {scene.content.keyTakeaways?.length ? (
-                    <>
-                      <strong>Key takeaways</strong>
-                      <ul className="meta-list">
-                        {scene.content.keyTakeaways.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
-                    </>
-                  ) : null}
-                </>
-              ) : scene.content && "questions" in scene.content ? (
-                <QuizSceneClient
-                  lessonId={lesson.id}
-                  sceneId={scene.id}
-                  title={scene.title}
-                  content={scene.content}
-                />
-              ) : (
-                <p>Scene content is not available yet.</p>
-              )}
-            </article>
-          ))
-        )}
+                      </>
+                    ) : null}
+                  </>
+                ) : activeScene.content && "questions" in activeScene.content ? (
+                  <QuizSceneClient
+                    lessonId={lesson.id}
+                    sceneId={activeScene.id}
+                    title={activeScene.title}
+                    content={activeScene.content}
+                  />
+                ) : (
+                  <p>Scene content is not available yet.</p>
+                )}
+              </article>
+
+              <div className="button-row">
+                <Link
+                  className="button secondary scene-nav-link"
+                  aria-disabled={activeSceneIndex <= 0}
+                  href={`/lessons/${lesson.id}?scene=${Math.max(activeSceneStep - 1, 1)}`}
+                >
+                  Previous scene
+                </Link>
+                <Link
+                  className="button primary scene-nav-link"
+                  aria-disabled={activeSceneIndex >= lesson.scenes.length - 1}
+                  href={`/lessons/${lesson.id}?scene=${Math.min(activeSceneStep + 1, lesson.scenes.length)}`}
+                >
+                  Next scene
+                </Link>
+              </div>
+            </>
+          ) : (
+            <p>No scene content has been generated yet.</p>
+          )}
+        </section>
       </section>
 
       <TutorChatClient
