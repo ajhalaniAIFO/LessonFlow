@@ -2,8 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { ApiResponse } from "@/types/api";
 import type { LessonJob } from "@/types/job";
+import {
+  generationStages,
+  getJobHeadline,
+  getJobSupportCopy,
+  getStageState,
+} from "@/lib/server/lessons/job-progress";
 
 type Props = {
   jobId: string;
@@ -53,31 +60,54 @@ export function GenerationStatusClient({ jobId }: Props) {
   return (
     <>
       <section className="hero">
-        <span className="eyebrow">Outline Generation</span>
-        <h1>We are building your lesson outline.</h1>
-        <p>
-          This milestone creates and stores a structured outline first. Once it is ready,
-          you will be redirected automatically to the lesson page.
-        </p>
+        <span className="eyebrow">Local Generation</span>
+        <h1>{getJobHeadline(job)}</h1>
+        <p>{error ?? getJobSupportCopy(job)}</p>
       </section>
 
-      <section className="card">
-        <h2>Status</h2>
-        {error ? <p>{error}</p> : null}
-        {job ? (
-          <>
-            <p>
-              <strong>Stage:</strong> {job.stage}
-            </p>
-            <p>
-              <strong>Progress:</strong> {job.progress}%
-            </p>
-            <p>{job.message}</p>
-            {job.errorMessage ? <p>{job.errorMessage}</p> : null}
-          </>
-        ) : !error ? (
-          <p>Loading job status...</p>
-        ) : null}
+      <section className="card-grid">
+        <section className="card">
+          <h2>Progress</h2>
+          <div className="progress-shell" aria-hidden="true">
+            <div className="progress-bar" style={{ width: `${job?.progress ?? 8}%` }} />
+          </div>
+          <p className="status-copy">
+            <strong>{job?.progress ?? 0}%</strong> complete
+          </p>
+
+          <div className="status-box">
+            <p className="status-title">Current stage</p>
+            <p className="status-copy">{job?.message ?? "Loading job status..."}</p>
+            {job?.errorMessage ? <p className="status-copy">{job.errorMessage}</p> : null}
+          </div>
+
+          {job?.status === "ready" ? (
+            <div className="button-row">
+              <Link className="button primary" href={`/lessons/${job.lessonId}`}>
+                Open lesson
+              </Link>
+            </div>
+          ) : null}
+        </section>
+
+        <section className="card">
+          <h2>Pipeline stages</h2>
+          <ol className="progress-stage-list">
+            {generationStages.map((stage) => {
+              const state = getStageState(job, stage.key);
+
+              return (
+                <li key={stage.key} className={`progress-stage ${state}`}>
+                  <div className="progress-stage-marker" aria-hidden="true" />
+                  <div>
+                    <strong>{stage.label}</strong>
+                    <p className="status-copy">{stage.description}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
       </section>
     </>
   );
