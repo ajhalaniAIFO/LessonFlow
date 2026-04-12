@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { QuizSceneClient } from "@/components/lesson/quiz-scene-client";
+import { SceneProgressTracker } from "@/components/lesson/scene-progress-tracker";
 import { TutorChatClient } from "@/components/lesson/tutor-chat-client";
 import {
   getSceneProgressLabel,
@@ -34,6 +35,10 @@ export default async function LessonPage({
 
   return (
     <main className="page-shell">
+      {activeSceneStep > 0 ? (
+        <SceneProgressTracker lessonId={lesson.id} sceneOrder={activeSceneStep} />
+      ) : null}
+
       <nav className="nav">
         <div>
           <strong>LessonFlow</strong>

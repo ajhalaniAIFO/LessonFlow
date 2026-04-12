@@ -31,6 +31,7 @@ export const LESSONS_TABLE_SQL = `
     language TEXT NOT NULL,
     status TEXT NOT NULL,
     error_message TEXT,
+    last_viewed_scene_order INTEGER,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     FOREIGN KEY (source_upload_id) REFERENCES uploads(id) ON DELETE SET NULL

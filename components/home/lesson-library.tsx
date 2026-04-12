@@ -103,8 +103,16 @@ export function LessonLibrary({ lessons: initialLessons }: Props) {
                     Status: {lesson.status} | Scenes: {lesson.sceneCount} | Updated:{" "}
                     {new Date(lesson.updatedAt).toLocaleString()}
                   </p>
+                  {lesson.lastViewedSceneOrder ? (
+                    <p className="field-hint">Resume from scene {lesson.lastViewedSceneOrder}</p>
+                  ) : null}
                   <div className="button-row">
-                    <Link className="button primary" href={`/lessons/${lesson.id}`}>
+                    <Link
+                      className="button primary"
+                      href={`/lessons/${lesson.id}${
+                        lesson.lastViewedSceneOrder ? `?scene=${lesson.lastViewedSceneOrder}` : ""
+                      }`}
+                    >
                       Open lesson
                     </Link>
                     <button
