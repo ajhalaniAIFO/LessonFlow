@@ -7,6 +7,7 @@ import type { ApiResponse } from "@/types/api";
 type Props = {
   lessonId: string;
   variant?: "primary" | "secondary";
+  label?: string;
 };
 
 type RegenerateResponse = {
@@ -14,7 +15,11 @@ type RegenerateResponse = {
   jobId: string;
 };
 
-export function RegenerateLessonButton({ lessonId, variant = "secondary" }: Props) {
+export function RegenerateLessonButton({
+  lessonId,
+  variant = "secondary",
+  label = "Regenerate",
+}: Props) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +46,7 @@ export function RegenerateLessonButton({ lessonId, variant = "secondary" }: Prop
   return (
     <>
       <button className={`button ${variant}`} type="button" onClick={handleRegenerate} disabled={isSubmitting}>
-        {isSubmitting ? "Regenerating..." : "Regenerate"}
+        {isSubmitting ? "Regenerating..." : label}
       </button>
       {error ? (
         <div className="status-box error">

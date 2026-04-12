@@ -70,7 +70,10 @@ export function LessonLibrary({ lessons: initialLessons }: Props) {
       ) : (
         <div className="form-grid">
           {lessons.map((lesson) => (
-            <div key={lesson.id} className="status-box">
+            <div
+              key={lesson.id}
+              className={`status-box ${lesson.status === "error" ? "error" : lesson.status === "ready" ? "success" : ""}`}
+            >
               {renamingId === lesson.id ? (
                 <div className="form-grid">
                   <div className="field">
@@ -104,6 +107,9 @@ export function LessonLibrary({ lessons: initialLessons }: Props) {
                     Status: {lesson.status} | Scenes: {lesson.sceneCount} | Updated:{" "}
                     {new Date(lesson.updatedAt).toLocaleString()}
                   </p>
+                  {lesson.status === "error" ? (
+                    <p className="field-hint">This lesson needs regeneration before it will be usable again.</p>
+                  ) : null}
                   {lesson.lastViewedSceneOrder ? (
                     <p className="field-hint">Resume from scene {lesson.lastViewedSceneOrder}</p>
                   ) : null}

@@ -54,6 +54,7 @@ describe("job-progress helpers", () => {
     expect(getStageState(job, generationStages[2].key)).toBe("complete");
     expect(getStageState(job, generationStages[3].key)).toBe("error");
     expect(getJobSupportCopy(job)).toContain("not completed");
+    expect(getJobHeadline(job)).toBe("Lesson generation needs attention");
   });
 
   it("provides a placeholder headline before the first poll returns", () => {
