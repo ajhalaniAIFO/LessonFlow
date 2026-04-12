@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { QuizSceneClient } from "@/components/lesson/quiz-scene-client";
+import { TutorChatClient } from "@/components/lesson/tutor-chat-client";
 import { getLessonById } from "@/lib/server/lessons/lesson-service";
 
 export const dynamic = "force-dynamic";
@@ -104,6 +105,8 @@ export default async function LessonPage({
           ))
         )}
       </section>
+
+      <TutorChatClient lessonId={lesson.id} />
     </main>
   );
 }
