@@ -25,8 +25,9 @@ export type Lesson = {
 };
 
 export type CreateLessonRequest = {
-  prompt: string;
+  prompt?: string;
   language: string;
+  uploadId?: string;
 };
 
 export type LessonListItem = {

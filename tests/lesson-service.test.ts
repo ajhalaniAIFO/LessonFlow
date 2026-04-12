@@ -110,4 +110,14 @@ describe("lesson-service", () => {
     expect(lesson?.status).toBe("error");
     expect(lesson?.errorMessage).toContain("provider unavailable");
   });
+
+  it("accepts document-backed lesson requests without a prompt", () => {
+    const parsed = parseCreateLessonRequest({
+      uploadId: "upload-1",
+      language: "en",
+    });
+
+    expect(parsed.uploadId).toBe("upload-1");
+    expect(parsed.prompt).toBeUndefined();
+  });
 });
