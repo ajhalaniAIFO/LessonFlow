@@ -4,7 +4,7 @@ import { generateLessonOutline } from "@/lib/server/lessons/outline-generator";
 import { generateQuizScene } from "@/lib/server/lessons/quiz-generator";
 import { generateLessonScene } from "@/lib/server/lessons/scene-generator";
 import { AppError } from "@/lib/server/utils/errors";
-import type { Lesson, OutlineItem, CreateLessonRequest } from "@/types/lesson";
+import type { Lesson, LessonListItem, OutlineItem, CreateLessonRequest } from "@/types/lesson";
 import type { LessonJob, LessonJobStatus } from "@/types/job";
 import type { Scene } from "@/types/scene";
 
@@ -377,4 +377,57 @@ export async function getLessonById(lessonId: string): Promise<Lesson | null> {
     .prepare("SELECT * FROM scenes WHERE lesson_id = ? ORDER BY display_order ASC")
     .all(lessonId) as SceneRow[];
   return mapLesson(lesson, outline, scenes);
+}
+
+export async function listLessons(): Promise<LessonListItem[]> {
+  const db = getDatabase();
+  const rows = db
+    .prepare(
+      `SELECT lessons.id, lessons.title, lessons.status, lessons.updated_at,
+              COUNT(scenes.id) AS scene_count
+       FROM lessons
+       LEFT JOIN scenes ON scenes.lesson_id = lessons.id
+       GROUP BY lessons.id, lessons.title, lessons.status, lessons.updated_at
+       ORDER BY lessons.updated_at DESC`,
+    )
+    .all() as Array<{
+    id: string;
+    title: string;
+    status: Lesson["status"];
+    updated_at: number;
+    scene_count: number;
+  }>;
+
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    status: row.status,
+    sceneCount: row.scene_count,
+    updatedAt: row.updated_at,
+  }));
+}
+
+export async function renameLesson(lessonId: string, nextTitle: string) {
+  const title = nextTitle.trim();
+  if (!title) {
+    throw new AppError("INVALID_REQUEST", "A lesson title is required.");
+  }
+
+  const db = getDatabase();
+  const result = db
+    .prepare("UPDATE lessons SET title = ?, updated_at = ? WHERE id = ?")
+    .run(title, Date.now(), lessonId);
+
+  if (result.changes === 0) {
+    throw new AppError("INVALID_REQUEST", "Lesson not found.");
+  }
+}
+
+export async function deleteLessonById(lessonId: string) {
+  const db = getDatabase();
+  const result = db.prepare("DELETE FROM lessons WHERE id = ?").run(lessonId);
+
+  if (result.changes === 0) {
+    throw new AppError("INVALID_REQUEST", "Lesson not found.");
+  }
 }

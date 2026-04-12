@@ -28,3 +28,11 @@ export type CreateLessonRequest = {
   prompt: string;
   language: string;
 };
+
+export type LessonListItem = {
+  id: string;
+  title: string;
+  status: LessonStatus;
+  sceneCount: number;
+  updatedAt: number;
+};
