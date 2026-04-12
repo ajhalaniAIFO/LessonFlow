@@ -10,6 +10,10 @@ type OllamaTagsResponse = {
   }>;
 };
 
+type OllamaGenerateResponse = {
+  response?: string;
+};
+
 function normalizeBaseUrl(baseUrl: string) {
   return baseUrl.replace(/\/+$/, "");
 }
@@ -83,10 +87,39 @@ export class OllamaProvider implements LLMProvider {
   }
 
   async generateText(_request: PromptRequest): Promise<TextResult> {
-    throw new Error("Ollama text generation is not implemented yet.");
+    const cleanedBaseUrl = normalizeBaseUrl(_request.baseUrl ?? "http://127.0.0.1:11434");
+    const response = await fetch(`${cleanedBaseUrl}/api/generate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: _request.model,
+        prompt: _request.prompt,
+        stream: false,
+        options: {
+          temperature: _request.temperature,
+          num_predict: _request.maxTokens,
+        },
+      }),
+      signal:
+        typeof _request.timeoutMs === "number"
+          ? AbortSignal.timeout(_request.timeoutMs)
+          : undefined,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama returned HTTP ${response.status} while generating text.`);
+    }
+
+    const payload = (await response.json()) as OllamaGenerateResponse;
+    return {
+      text: payload.response ?? "",
+    };
   }
 
-  async generateStructuredJson<T>(_request: PromptRequest): Promise<T> {
-    throw new Error("Ollama structured generation is not implemented yet.");
+  async generateStructuredJson<T>(request: PromptRequest): Promise<T> {
+    const result = await this.generateText(request);
+    return JSON.parse(result.text) as T;
   }
 }

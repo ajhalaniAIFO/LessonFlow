@@ -12,6 +12,7 @@ export type LessonJob = {
   lessonId: string;
   status: LessonJobStatus;
   progress: number;
+  stage: LessonJobStatus;
   message?: string;
+  errorMessage?: string;
 };
-

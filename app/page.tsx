@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LessonRequestForm } from "@/components/home/lesson-request-form";
 
 export default function HomePage() {
   return (
@@ -30,22 +31,25 @@ export default function HomePage() {
 
       <section className="card-grid">
         <article className="card">
-          <h2>What is working in this milestone</h2>
+          <h2>Start the next milestone</h2>
+          <LessonRequestForm />
+        </article>
+
+        <aside className="card">
+          <h3>What is working now</h3>
           <ol className="step-list">
             <li>Project bootstrap for a Next.js and TypeScript app</li>
             <li>SQLite-backed settings persistence</li>
             <li>Ollama health checks and model listing endpoints</li>
             <li>Settings page for base URL, model, and generation defaults</li>
+            <li>Prompt-to-outline lesson generation with saved jobs</li>
+            <li>Automated tests for settings and provider behavior</li>
           </ol>
           <div className="button-row">
             <Link className="button primary" href="/settings">
               Configure local model
             </Link>
           </div>
-        </article>
-
-        <aside className="card">
-          <h3>Recommended local setup</h3>
           <ul className="meta-list">
             <li>Install Ollama on your machine</li>
             <li>
@@ -57,6 +61,7 @@ export default function HomePage() {
               <span className="code-inline">qwen2.5:7b-instruct</span>
             </li>
             <li>Open the settings page and test the connection</li>
+            <li>Return here and generate your first lesson outline</li>
           </ul>
         </aside>
       </section>

@@ -1,4 +1,15 @@
-You are generating a structured lesson outline.
+You are generating a structured lesson outline for a local-first learning app.
 
-Return valid JSON only.
+Output must be valid JSON only.
 
+The final JSON shape must be:
+{
+  "title": "string",
+  "outline": [
+    {
+      "title": "string",
+      "goal": "string",
+      "sceneType": "lesson" | "quiz"
+    }
+  ]
+}
