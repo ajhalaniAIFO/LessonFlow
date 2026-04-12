@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LessonSummaryActions } from "@/components/lesson/lesson-summary-actions";
 import { QuizSceneClient } from "@/components/lesson/quiz-scene-client";
 import { RegenerateLessonButton } from "@/components/lesson/regenerate-lesson-button";
 import { SceneProgressTracker } from "@/components/lesson/scene-progress-tracker";
@@ -61,6 +62,14 @@ export default async function LessonPage({
         <div className="button-row">
           <RegenerateLessonButton lessonId={lesson.id} variant="primary" />
         </div>
+      </section>
+
+      <section className="card">
+        <h2>Lesson summary</h2>
+        <p className="status-copy">
+          Copy or download a compact markdown summary of this lesson for notes, sharing, or review.
+        </p>
+        <LessonSummaryActions lessonId={lesson.id} lessonTitle={lesson.title} />
       </section>
 
       <section className="card">
