@@ -30,7 +30,7 @@ export async function generateLessonScene(
 
   const prompt = `${template}
 
-Create the first teaching scene for this lesson.
+Create a teaching scene for this lesson outline item.
 
 Requirements:
 - Return strict JSON only.
