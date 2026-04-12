@@ -25,3 +25,16 @@ export type QuizSceneContent = {
   questions: QuizQuestion[];
 };
 
+export type SceneStatus = "pending" | "ready" | "error";
+
+export type Scene = {
+  id: string;
+  lessonId: string;
+  outlineItemId: string;
+  type: SceneType;
+  title: string;
+  order: number;
+  status: SceneStatus;
+  content?: LessonSceneContent | QuizSceneContent;
+  errorMessage?: string;
+};

@@ -2,8 +2,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getDatabase, resetDatabase } from "@/lib/db/client";
+import { resetDatabase } from "@/lib/db/client";
 import * as outlineGenerator from "@/lib/server/lessons/outline-generator";
+import * as sceneGenerator from "@/lib/server/lessons/scene-generator";
 import {
   createLessonJob,
   getLessonById,
@@ -41,6 +42,15 @@ describe("lesson-service", () => {
         { title: "Quick knowledge check", goal: "Reinforce understanding", sceneType: "quiz" },
       ],
     });
+    const sceneSpy = vi.spyOn(sceneGenerator, "generateLessonScene").mockResolvedValue({
+      title: "What Thermodynamics Studies",
+      summary: "Thermodynamics explains heat, work, and energy.",
+      sections: [
+        { heading: "Core idea", body: "It studies energy transfer." },
+        { heading: "Why it matters", body: "It helps explain engines and refrigeration." },
+      ],
+      keyTakeaways: ["Energy transfer matters", "Thermodynamics is widely used"],
+    });
 
     const result = await createLessonJob(
       {
@@ -56,8 +66,11 @@ describe("lesson-service", () => {
 
     expect(lesson?.title).toBe("Thermodynamics Basics");
     expect(lesson?.outline).toHaveLength(3);
+    expect(lesson?.scenes).toHaveLength(1);
+    expect(lesson?.scenes[0]?.title).toBe("What Thermodynamics Studies");
     expect(job?.status).toBe("ready");
     spy.mockRestore();
+    sceneSpy.mockRestore();
   });
 
   it("stores an error state when generation fails", async () => {

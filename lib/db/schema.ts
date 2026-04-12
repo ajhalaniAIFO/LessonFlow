@@ -48,3 +48,21 @@ export const OUTLINE_ITEMS_TABLE_SQL = `
     FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE CASCADE
   );
 `;
+
+export const SCENES_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS scenes (
+    id TEXT PRIMARY KEY,
+    lesson_id TEXT NOT NULL,
+    outline_item_id TEXT NOT NULL,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    display_order INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    content_json TEXT,
+    error_message TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE CASCADE,
+    FOREIGN KEY (outline_item_id) REFERENCES outline_items(id) ON DELETE CASCADE
+  );
+`;

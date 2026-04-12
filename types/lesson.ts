@@ -1,4 +1,4 @@
-import type { SceneType } from "./scene";
+import type { Scene, SceneType } from "./scene";
 
 export type OutlineItem = {
   id: string;
@@ -18,6 +18,7 @@ export type Lesson = {
   language: string;
   status: LessonStatus;
   outline: OutlineItem[];
+  scenes: Scene[];
   errorMessage?: string;
   createdAt: number;
   updatedAt: number;
