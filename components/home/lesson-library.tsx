@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { RegenerateLessonButton } from "@/components/lesson/regenerate-lesson-button";
 import type { ApiResponse } from "@/types/api";
 import type { LessonListItem } from "@/types/lesson";
 
@@ -115,6 +116,7 @@ export function LessonLibrary({ lessons: initialLessons }: Props) {
                     >
                       Open lesson
                     </Link>
+                    <RegenerateLessonButton lessonId={lesson.id} />
                     <button
                       className="button secondary"
                       type="button"
