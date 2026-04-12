@@ -11,6 +11,7 @@ export type ModelInfo = {
 };
 
 export type PromptRequest = {
+  baseUrl?: string;
   model: string;
   prompt: string;
   temperature?: number;
@@ -28,4 +29,3 @@ export interface LLMProvider {
   generateText(request: PromptRequest): Promise<TextResult>;
   generateStructuredJson<T>(request: PromptRequest): Promise<T>;
 }
-
