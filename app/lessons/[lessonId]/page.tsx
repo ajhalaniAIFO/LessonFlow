@@ -9,6 +9,7 @@ import {
   getSceneProgressLabel,
   resolveSceneIndex,
 } from "@/lib/server/lessons/scene-navigation";
+import { getGenerationModeDefinition } from "@/lib/server/lessons/generation-mode";
 import { getLessonById } from "@/lib/server/lessons/lesson-service";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +36,7 @@ export default async function LessonPage({
   const activeSceneIndex = resolveSceneIndex(rawScene, lesson.scenes.length);
   const activeScene = activeSceneIndex >= 0 ? lesson.scenes[activeSceneIndex] : null;
   const activeSceneStep = activeSceneIndex + 1;
+  const generationMode = getGenerationModeDefinition(lesson.generationMode);
 
   return (
     <main className="page-shell">
@@ -60,6 +62,9 @@ export default async function LessonPage({
         <span className="eyebrow">Lesson Ready</span>
         <h1>{lesson.title}</h1>
         <p>{lesson.prompt ?? "This lesson was generated from your uploaded material."}</p>
+        <p className="status-copy">
+          Generation mode: <strong>{generationMode.label}</strong> - {generationMode.description}
+        </p>
         <div className="button-row">
           <RegenerateLessonButton lessonId={lesson.id} variant="primary" />
         </div>

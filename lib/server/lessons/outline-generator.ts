@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { getGenerationModeDefinition, resolveGenerationRequestSettings } from "@/lib/server/lessons/generation-mode";
 import { getProvider } from "@/lib/server/llm/provider-registry";
 import type { LLMProvider } from "@/lib/server/llm/types";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
@@ -13,12 +14,15 @@ async function loadPromptTemplate() {
 }
 
 export async function generateLessonOutline(
-  input: { prompt: string; language: string; sourceText?: string },
+  input: { prompt: string; language: string; sourceText?: string; generationMode?: "fast" | "balanced" | "detailed" },
   providerOverride?: LLMProvider,
 ): Promise<OutlineResponse> {
   const settings = await getModelSettings();
   const provider = providerOverride ?? getProvider(settings.provider);
   const template = await loadPromptTemplate();
+  const generationMode = input.generationMode ?? "balanced";
+  const modeDefinition = getGenerationModeDefinition(generationMode);
+  const requestSettings = resolveGenerationRequestSettings(generationMode, settings);
   const sourceContext = buildSourceContext({
     sourceText: input.sourceText,
     lessonPrompt: input.prompt,
@@ -35,6 +39,8 @@ Requirements:
 - Each outline item must include: "title", "goal", and "sceneType".
 - Use "lesson" for teaching sections and include exactly one "quiz" item near the end.
 - Keep the lesson practical and progressive.
+- Generation mode: ${modeDefinition.label}
+- Mode guidance: ${modeDefinition.outlineGuidance}
 - Language: ${input.language}
 
 Learning request:
@@ -52,8 +58,8 @@ ${sourceContext?.highlights.join(", ") || "No source highlights available."}`;
       baseUrl: settings.baseUrl,
       model: settings.model,
       prompt,
-      temperature: settings.temperature,
-      maxTokens: settings.maxTokens,
+      temperature: requestSettings.temperature,
+      maxTokens: requestSettings.maxTokens,
       timeoutMs: settings.timeoutMs,
     });
   } catch (error) {

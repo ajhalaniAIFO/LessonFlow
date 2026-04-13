@@ -38,6 +38,7 @@ describe("lesson-service", () => {
     });
 
     expect(result.prompt).toBe("Teach me thermodynamics");
+    expect(result.generationMode).toBe("balanced");
   });
 
   it("creates a lesson and job record", async () => {
@@ -96,6 +97,7 @@ describe("lesson-service", () => {
     const job = await getLessonJob(result.jobId);
 
     expect(lesson?.title).toBe("Thermodynamics Basics");
+    expect(lesson?.generationMode).toBe("balanced");
     expect(lesson?.outline).toHaveLength(3);
     expect(lesson?.scenes).toHaveLength(3);
     expect(lesson?.scenes[0]?.title).toBe("What Thermodynamics Studies");
@@ -138,6 +140,50 @@ describe("lesson-service", () => {
 
     expect(parsed.uploadId).toBe("upload-1");
     expect(parsed.prompt).toBeUndefined();
+    expect(parsed.generationMode).toBe("balanced");
+  });
+
+  it("persists the selected generation mode on the lesson", async () => {
+    vi.spyOn(outlineGenerator, "generateLessonOutline").mockResolvedValue({
+      title: "Thermodynamics Basics",
+      outline: [
+        { title: "What thermodynamics studies", goal: "Understand the scope", sceneType: "lesson" },
+        { title: "Quick knowledge check", goal: "Reinforce understanding", sceneType: "quiz" },
+      ],
+    });
+    vi.spyOn(sceneGenerator, "generateLessonScene").mockResolvedValue({
+      title: "What Thermodynamics Studies",
+      summary: "Thermodynamics explains heat, work, and energy.",
+      sections: [{ heading: "Core idea", body: "It studies energy transfer." }],
+      keyTakeaways: ["Energy transfer matters"],
+    });
+    vi.spyOn(quizGenerator, "generateQuizScene").mockResolvedValue({
+      title: "Quick knowledge check",
+      questions: [
+        {
+          id: "quiz-q1",
+          prompt: "What does thermodynamics study?",
+          type: "multiple_choice",
+          options: ["Energy transfer", "Only gravity", "Only electricity", "Only chemistry"],
+          correctIndex: 0,
+          explanation: "Thermodynamics studies heat, work, and energy transfer.",
+        },
+      ],
+    });
+
+    const created = await createLessonJob(
+      {
+        prompt: "Teach me thermodynamics",
+        language: "en",
+        generationMode: "detailed",
+      },
+      { autoProcess: false },
+    );
+
+    await processLessonJob(created.jobId);
+    const lesson = await getLessonById(created.lessonId);
+
+    expect(lesson?.generationMode).toBe("detailed");
   });
 
   it("creates a regeneration job for an existing lesson", async () => {

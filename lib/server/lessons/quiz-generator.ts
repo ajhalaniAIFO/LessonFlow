@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { getGenerationModeDefinition, resolveGenerationRequestSettings } from "@/lib/server/lessons/generation-mode";
 import { getProvider } from "@/lib/server/llm/provider-registry";
 import type { LLMProvider } from "@/lib/server/llm/types";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
@@ -29,6 +30,7 @@ export async function generateQuizScene(
     sceneSummary?: string;
     keyTakeaways?: string[];
     language: string;
+    generationMode?: "fast" | "balanced" | "detailed";
     sourceContext?: SourceContext;
   },
   providerOverride?: LLMProvider,
@@ -36,6 +38,9 @@ export async function generateQuizScene(
   const settings = await getModelSettings();
   const provider = providerOverride ?? getProvider(settings.provider);
   const template = await loadPromptTemplate();
+  const generationMode = input.generationMode ?? "balanced";
+  const modeDefinition = getGenerationModeDefinition(generationMode);
+  const requestSettings = resolveGenerationRequestSettings(generationMode, settings);
 
   const prompt = `${template}
 
@@ -49,6 +54,8 @@ Requirements:
 - "type" must always be "multiple_choice".
 - Each question must have exactly 4 options.
 - Make the quiz check understanding of the generated lesson content.
+- Generation mode: ${modeDefinition.label}
+- Mode guidance: ${modeDefinition.quizGuidance}
 - Language: ${input.language}
 
 Lesson title:
@@ -79,8 +86,8 @@ ${input.sourceContext?.highlights.join(", ") || "No source highlights available.
       baseUrl: settings.baseUrl,
       model: settings.model,
       prompt,
-      temperature: settings.temperature,
-      maxTokens: settings.maxTokens,
+      temperature: requestSettings.temperature,
+      maxTokens: requestSettings.maxTokens,
       timeoutMs: settings.timeoutMs,
     });
   } catch (error) {

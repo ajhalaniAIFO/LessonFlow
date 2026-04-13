@@ -12,6 +12,7 @@ import type {
   OutlineItem,
   CreateLessonRequest,
   OutlineReviewUpdate,
+  GenerationMode,
 } from "@/types/lesson";
 import type { LessonJob, LessonJobStatus } from "@/types/job";
 import type { Scene } from "@/types/scene";
@@ -23,6 +24,7 @@ type LessonRow = {
   source_upload_id: string | null;
   source_type: Lesson["sourceType"];
   language: string;
+  generation_mode: GenerationMode;
   status: Lesson["status"];
   error_message: string | null;
   last_viewed_scene_order: number | null;
@@ -83,6 +85,7 @@ function mapLesson(row: LessonRow, outline: OutlineRow[], scenes: SceneRow[]): L
     sourceUploadId: row.source_upload_id ?? undefined,
     sourceType: row.source_type,
     language: row.language,
+    generationMode: row.generation_mode,
     status: row.status,
     errorMessage: row.error_message ?? undefined,
     lastViewedSceneOrder: row.last_viewed_scene_order ?? undefined,
@@ -122,15 +125,21 @@ export function parseCreateLessonRequest(input: unknown): CreateLessonRequest {
   const prompt = String(raw.prompt ?? "").trim();
   const language = String(raw.language ?? "en").trim() || "en";
   const uploadId = raw.uploadId ? String(raw.uploadId).trim() : undefined;
+  const generationMode = String(raw.generationMode ?? "balanced").trim() as GenerationMode;
 
   if (!prompt && !uploadId) {
     throw new AppError("INVALID_REQUEST", "Provide a lesson prompt or an uploaded document.");
+  }
+
+  if (!["fast", "balanced", "detailed"].includes(generationMode)) {
+    throw new AppError("INVALID_REQUEST", "A valid generation mode is required.");
   }
 
   return {
     prompt: prompt || undefined,
     language,
     uploadId,
+    generationMode,
   };
 }
 
@@ -142,10 +151,11 @@ export async function createLessonJob(
   const lessonId = randomUUID();
   const jobId = randomUUID();
   const db = getDatabase();
+  const generationMode = input.generationMode ?? "balanced";
 
   db.prepare(
-      `INSERT INTO lessons (id, title, prompt, source_upload_id, source_type, language, status, error_message, created_at, updated_at)
-     VALUES (@id, @title, @prompt, @source_upload_id, @source_type, @language, @status, @error_message, @created_at, @updated_at)`,
+      `INSERT INTO lessons (id, title, prompt, source_upload_id, source_type, language, generation_mode, status, error_message, created_at, updated_at)
+     VALUES (@id, @title, @prompt, @source_upload_id, @source_type, @language, @generation_mode, @status, @error_message, @created_at, @updated_at)`,
   ).run({
     id: lessonId,
     title: "Generating lesson...",
@@ -153,6 +163,7 @@ export async function createLessonJob(
     source_upload_id: input.uploadId ?? null,
     source_type: input.prompt && input.uploadId ? "prompt_and_document" : input.uploadId ? "document" : "prompt",
     language: input.language,
+    generation_mode: generationMode,
     status: "generating",
     error_message: null,
     created_at: now,
@@ -312,6 +323,7 @@ export async function regenerateLessonScene(lessonId: string, sceneId: string) {
       outlineTitle: outlineRow.title,
       outlineGoal: outlineRow.goal ?? undefined,
       language: lesson.language,
+      generationMode: lesson.generationMode,
       sourceContext,
     });
 
@@ -345,6 +357,7 @@ export async function regenerateLessonScene(lessonId: string, sceneId: string) {
           ? priorLessonScene.content.keyTakeaways
           : undefined,
       language: lesson.language,
+      generationMode: lesson.generationMode,
       sourceContext,
     });
 
@@ -489,6 +502,7 @@ export async function processLessonOutlineJob(jobId: string) {
     const outline = await generateLessonOutline({
       prompt: lesson.prompt ?? "Teach me the key ideas from the uploaded material.",
       language: lesson.language,
+      generationMode: lesson.generation_mode,
       sourceText: lesson.source_upload_id
         ? (await getUploadById(lesson.source_upload_id))?.extractedText
         : undefined,
@@ -613,6 +627,7 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
       const outline = await generateLessonOutline({
         prompt: lesson.prompt ?? "Teach me the key ideas from the uploaded material.",
         language: lesson.language,
+        generationMode: lesson.generation_mode,
         sourceText: lesson.source_upload_id
           ? (await getUploadById(lesson.source_upload_id))?.extractedText
           : undefined,
@@ -681,6 +696,7 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
           outlineTitle: outlineRow.title,
           outlineGoal: outlineRow.goal ?? undefined,
           language: lesson.language,
+          generationMode: lesson.generation_mode,
           sourceContext,
         });
 
@@ -721,6 +737,7 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
         sceneSummary: latestLessonSummary,
         keyTakeaways: latestLessonTakeaways,
         language: lesson.language,
+        generationMode: lesson.generation_mode,
         sourceContext,
       });
 
@@ -806,17 +823,19 @@ export async function listLessons(): Promise<LessonListItem[]> {
   const rows = db
     .prepare(
       `SELECT lessons.id, lessons.title, lessons.status, lessons.updated_at,
+              lessons.generation_mode,
               lessons.last_viewed_scene_order,
               COUNT(scenes.id) AS scene_count
        FROM lessons
        LEFT JOIN scenes ON scenes.lesson_id = lessons.id
-       GROUP BY lessons.id, lessons.title, lessons.status, lessons.updated_at, lessons.last_viewed_scene_order
+       GROUP BY lessons.id, lessons.title, lessons.status, lessons.updated_at, lessons.generation_mode, lessons.last_viewed_scene_order
        ORDER BY lessons.updated_at DESC`,
     )
     .all() as Array<{
     id: string;
     title: string;
     status: Lesson["status"];
+    generation_mode: GenerationMode;
     updated_at: number;
     scene_count: number;
     last_viewed_scene_order: number | null;
@@ -826,6 +845,7 @@ export async function listLessons(): Promise<LessonListItem[]> {
     id: row.id,
     title: row.title,
     status: row.status,
+    generationMode: row.generation_mode,
     sceneCount: row.scene_count,
     lastViewedSceneOrder: row.last_viewed_scene_order ?? undefined,
     updatedAt: row.updated_at,

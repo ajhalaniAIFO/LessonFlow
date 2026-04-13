@@ -32,6 +32,12 @@ export function runMigrations(db: Database.Database) {
     db.exec("ALTER TABLE lessons ADD COLUMN last_viewed_scene_order INTEGER;");
   }
 
+  const hasGenerationMode = lessonColumns.some((column) => column.name === "generation_mode");
+
+  if (!hasGenerationMode) {
+    db.exec("ALTER TABLE lessons ADD COLUMN generation_mode TEXT NOT NULL DEFAULT 'balanced';");
+  }
+
   const chatMessageColumns = db
     .prepare("PRAGMA table_info(chat_messages)")
     .all() as Array<{ name: string }>;

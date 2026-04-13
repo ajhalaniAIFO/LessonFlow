@@ -1,5 +1,7 @@
 import type { Scene, SceneType } from "./scene";
 
+export type GenerationMode = "fast" | "balanced" | "detailed";
+
 export type OutlineItem = {
   id: string;
   title: string;
@@ -17,6 +19,7 @@ export type Lesson = {
   sourceUploadId?: string;
   sourceType: "prompt" | "document" | "prompt_and_document";
   language: string;
+  generationMode: GenerationMode;
   status: LessonStatus;
   outline: OutlineItem[];
   scenes: Scene[];
@@ -30,6 +33,7 @@ export type CreateLessonRequest = {
   prompt?: string;
   language: string;
   uploadId?: string;
+  generationMode?: GenerationMode;
 };
 
 export type OutlineReviewUpdate = {
@@ -47,6 +51,7 @@ export type LessonListItem = {
   id: string;
   title: string;
   status: LessonStatus;
+  generationMode: GenerationMode;
   sceneCount: number;
   lastViewedSceneOrder?: number;
   updatedAt: number;
