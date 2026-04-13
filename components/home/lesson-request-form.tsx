@@ -3,9 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { listGenerationModes } from "@/lib/server/lessons/generation-mode";
+import {
+  listLearnerLevels,
+  listTeachingStyles,
+} from "@/lib/server/lessons/personalization";
 import type { ApiResponse } from "@/types/api";
 import type { UploadRecord } from "@/types/upload";
-import type { GenerationMode } from "@/types/lesson";
+import type { GenerationMode, LearnerLevel, TeachingStyle } from "@/types/lesson";
 
 type CreateLessonResult = {
   lessonId: string;
@@ -17,6 +21,8 @@ export function LessonRequestForm() {
   const [prompt, setPrompt] = useState("");
   const [language, setLanguage] = useState("en");
   const [generationMode, setGenerationMode] = useState<GenerationMode>("balanced");
+  const [learnerLevel, setLearnerLevel] = useState<LearnerLevel>("intermediate");
+  const [teachingStyle, setTeachingStyle] = useState<TeachingStyle>("practical");
   const [status, setStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -89,6 +95,8 @@ export function LessonRequestForm() {
         language,
         uploadId,
         generationMode,
+        learnerLevel,
+        teachingStyle,
       }),
     });
     const payload = (await response.json()) as ApiResponse<CreateLessonResult>;
@@ -163,6 +171,42 @@ export function LessonRequestForm() {
         </select>
         <span className="field-hint">
           {listGenerationModes().find((mode) => mode.id === generationMode)?.description}
+        </span>
+      </div>
+
+      <div className="field">
+        <label htmlFor="learner-level">Learner level</label>
+        <select
+          id="learner-level"
+          value={learnerLevel}
+          onChange={(event) => setLearnerLevel(event.target.value as LearnerLevel)}
+        >
+          {listLearnerLevels().map((level) => (
+            <option key={level.id} value={level.id}>
+              {level.label}
+            </option>
+          ))}
+        </select>
+        <span className="field-hint">
+          {listLearnerLevels().find((level) => level.id === learnerLevel)?.description}
+        </span>
+      </div>
+
+      <div className="field">
+        <label htmlFor="teaching-style">Teaching style</label>
+        <select
+          id="teaching-style"
+          value={teachingStyle}
+          onChange={(event) => setTeachingStyle(event.target.value as TeachingStyle)}
+        >
+          {listTeachingStyles().map((style) => (
+            <option key={style.id} value={style.id}>
+              {style.label}
+            </option>
+          ))}
+        </select>
+        <span className="field-hint">
+          {listTeachingStyles().find((style) => style.id === teachingStyle)?.description}
         </span>
       </div>
 

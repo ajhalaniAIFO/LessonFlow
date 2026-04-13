@@ -65,6 +65,9 @@ export default async function LessonPage({
         <p className="status-copy">
           Generation mode: <strong>{generationMode.label}</strong> - {generationMode.description}
         </p>
+        <p className="status-copy">
+          Learner level: <strong>{lesson.learnerLevel}</strong> | Teaching style: <strong>{lesson.teachingStyle}</strong>
+        </p>
         <div className="button-row">
           <RegenerateLessonButton lessonId={lesson.id} variant="primary" />
         </div>

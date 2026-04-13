@@ -38,6 +38,16 @@ export function runMigrations(db: Database.Database) {
     db.exec("ALTER TABLE lessons ADD COLUMN generation_mode TEXT NOT NULL DEFAULT 'balanced';");
   }
 
+  const hasLearnerLevel = lessonColumns.some((column) => column.name === "learner_level");
+  if (!hasLearnerLevel) {
+    db.exec("ALTER TABLE lessons ADD COLUMN learner_level TEXT NOT NULL DEFAULT 'intermediate';");
+  }
+
+  const hasTeachingStyle = lessonColumns.some((column) => column.name === "teaching_style");
+  if (!hasTeachingStyle) {
+    db.exec("ALTER TABLE lessons ADD COLUMN teaching_style TEXT NOT NULL DEFAULT 'practical';");
+  }
+
   const chatMessageColumns = db
     .prepare("PRAGMA table_info(chat_messages)")
     .all() as Array<{ name: string }>;

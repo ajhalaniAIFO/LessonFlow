@@ -1,6 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { getGenerationModeDefinition, resolveGenerationRequestSettings } from "@/lib/server/lessons/generation-mode";
+import {
+  getLearnerLevelDefinition,
+  getTeachingStyleDefinition,
+} from "@/lib/server/lessons/personalization";
 import { getProvider } from "@/lib/server/llm/provider-registry";
 import type { LLMProvider } from "@/lib/server/llm/types";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
@@ -24,6 +28,8 @@ export async function generateLessonScene(
     outlineGoal?: string;
     language: string;
     generationMode?: "fast" | "balanced" | "detailed";
+    learnerLevel?: "beginner" | "intermediate" | "advanced";
+    teachingStyle?: "concise" | "practical" | "step_by_step";
     sourceContext?: SourceContext;
   },
   providerOverride?: LLMProvider,
@@ -32,7 +38,11 @@ export async function generateLessonScene(
   const provider = providerOverride ?? getProvider(settings.provider);
   const template = await loadPromptTemplate();
   const generationMode = input.generationMode ?? "balanced";
+  const learnerLevel = input.learnerLevel ?? "intermediate";
+  const teachingStyle = input.teachingStyle ?? "practical";
   const modeDefinition = getGenerationModeDefinition(generationMode);
+  const learnerLevelDefinition = getLearnerLevelDefinition(learnerLevel);
+  const teachingStyleDefinition = getTeachingStyleDefinition(teachingStyle);
   const requestSettings = resolveGenerationRequestSettings(generationMode, settings);
 
   const prompt = `${template}
@@ -48,6 +58,10 @@ Requirements:
 - Keep the tone instructional and practical.
 - Generation mode: ${modeDefinition.label}
 - Mode guidance: ${modeDefinition.sceneGuidance}
+- Learner level: ${learnerLevelDefinition.label}
+- Learner level guidance: ${learnerLevelDefinition.guidance}
+- Teaching style: ${teachingStyleDefinition.label}
+- Teaching style guidance: ${teachingStyleDefinition.guidance}
 - Language: ${input.language}
 
 Lesson title:

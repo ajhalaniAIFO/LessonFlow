@@ -2,6 +2,10 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { getDatabase } from "@/lib/db/client";
+import {
+  getLearnerLevelDefinition,
+  getTeachingStyleDefinition,
+} from "@/lib/server/lessons/personalization";
 import { getProvider } from "@/lib/server/llm/provider-registry";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
 import { AppError } from "@/lib/server/utils/errors";
@@ -65,6 +69,8 @@ export async function sendTutorMessage(
   const settings = await getModelSettings();
   const provider = getProvider(settings.provider);
   const template = await loadPromptTemplate();
+  const learnerLevelDefinition = getLearnerLevelDefinition(lesson.learnerLevel);
+  const teachingStyleDefinition = getTeachingStyleDefinition(lesson.teachingStyle);
   const existingMessages = await listChatMessages(lessonId, options?.sceneId);
   const db = getDatabase();
   const now = Date.now();
@@ -100,6 +106,10 @@ export async function sendTutorMessage(
   const lessonContext = [
     `Lesson title: ${lesson.title}`,
     `Lesson prompt: ${lesson.prompt ?? "No prompt provided."}`,
+    `Learner level: ${learnerLevelDefinition.label}`,
+    `Learner guidance: ${learnerLevelDefinition.guidance}`,
+    `Teaching style: ${teachingStyleDefinition.label}`,
+    `Teaching style guidance: ${teachingStyleDefinition.guidance}`,
     `Outline: ${lesson.outline.map((item) => `${item.order}. ${item.title}`).join(" | ")}`,
     activeSceneContext,
     ...lesson.scenes.flatMap((scene) => {
