@@ -217,7 +217,19 @@ describe("lesson-service", () => {
     const regeneration = await createLessonRegenerationJob(original.lessonId, {
       autoProcess: false,
     });
-    await processLessonJob(regeneration.jobId);
+    await processLessonOutlineJob(regeneration.jobId);
+
+    const reviewLesson = await getLessonById(original.lessonId);
+    const reviewJob = await getLessonJob(regeneration.jobId);
+
+    expect(reviewJob?.status).toBe("awaiting_review");
+    expect(reviewLesson?.status).toBe("draft");
+    expect(reviewLesson?.scenes).toHaveLength(0);
+
+    const continuation = await createOutlineGenerationJob(original.lessonId, {
+      autoProcess: false,
+    });
+    await processLessonSceneJob(continuation.jobId);
 
     const lesson = await getLessonById(original.lessonId);
     expect(regeneration.lessonId).toBe(original.lessonId);

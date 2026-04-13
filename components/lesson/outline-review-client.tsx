@@ -98,6 +98,15 @@ export function OutlineReviewClient({ lesson }: Props) {
           Review the lesson plan before we spend local compute generating scenes. You can tune the
           teaching sequence here and then continue when it looks right.
         </p>
+        {lesson.status === "draft" && lesson.scenes.length > 0 ? (
+          <div className="status-box">
+            <p className="status-title">Regeneration review</p>
+            <p className="status-copy">
+              This outline came from an existing lesson regeneration. The current lesson content will
+              be replaced after you continue.
+            </p>
+          </div>
+        ) : null}
       </section>
 
       <section className="card-grid">
