@@ -2,6 +2,7 @@ export type LessonJobStatus =
   | "queued"
   | "extracting_document"
   | "generating_outline"
+  | "awaiting_review"
   | "generating_scenes"
   | "generating_quizzes"
   | "ready"

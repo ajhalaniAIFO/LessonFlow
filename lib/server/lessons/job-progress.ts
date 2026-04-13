@@ -1,7 +1,7 @@
 import type { LessonJob, LessonJobStatus } from "@/types/job";
 
 export type GenerationStageDescriptor = {
-  key: Exclude<LessonJobStatus, "queued" | "ready" | "error">;
+  key: Exclude<LessonJobStatus, "queued" | "ready" | "error" | "awaiting_review">;
   label: string;
   description: string;
 };
@@ -48,6 +48,10 @@ export function getStageState(job: LessonJob | null, stageKey: GenerationStageDe
     return "complete" as const;
   }
 
+  if (job.status === "awaiting_review") {
+    return stageKey === "generating_outline" ? ("complete" as const) : ("upcoming" as const);
+  }
+
   const currentIndex = generationStages.findIndex((stage) => stage.key === job.stage);
   const stageIndex = generationStages.findIndex((stage) => stage.key === stageKey);
 
@@ -82,6 +86,8 @@ export function getJobHeadline(job: LessonJob | null) {
       return "Generating lesson scenes";
     case "generating_quizzes":
       return "Generating quiz scenes";
+    case "awaiting_review":
+      return "Review your outline";
     case "ready":
       return "Your lesson is ready";
     case "error":
@@ -98,6 +104,10 @@ export function getJobSupportCopy(job: LessonJob | null) {
 
   if (job.status === "ready") {
     return "Everything is saved locally and ready to open.";
+  }
+
+  if (job.status === "awaiting_review") {
+    return "Your outline is ready. Review it, make any quick edits you want, and then continue to full lesson generation.";
   }
 
   if (job.status === "error") {

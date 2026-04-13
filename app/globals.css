@@ -267,6 +267,38 @@ select {
   white-space: pre-wrap;
 }
 
+.outline-review-list {
+  display: grid;
+  gap: 16px;
+}
+
+.outline-review-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(248, 250, 255, 0.88);
+}
+
+.outline-review-order {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.outline-review-fields {
+  display: grid;
+  gap: 12px;
+}
+
 .code-inline {
   font-family: Consolas, "Courier New", monospace;
   background: rgba(32, 82, 214, 0.08);

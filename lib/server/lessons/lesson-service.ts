@@ -5,7 +5,13 @@ import { generateQuizScene } from "@/lib/server/lessons/quiz-generator";
 import { generateLessonScene } from "@/lib/server/lessons/scene-generator";
 import { getUploadById } from "@/lib/server/uploads/upload-service";
 import { AppError } from "@/lib/server/utils/errors";
-import type { Lesson, LessonListItem, OutlineItem, CreateLessonRequest } from "@/types/lesson";
+import type {
+  Lesson,
+  LessonListItem,
+  OutlineItem,
+  CreateLessonRequest,
+  OutlineReviewUpdate,
+} from "@/types/lesson";
 import type { LessonJob, LessonJobStatus } from "@/types/job";
 import type { Scene } from "@/types/scene";
 
@@ -167,7 +173,52 @@ export async function createLessonJob(
   });
 
   if (options?.autoProcess !== false) {
-    void processLessonJob(jobId);
+    void processLessonOutlineJob(jobId);
+  }
+
+  return {
+    lessonId,
+    jobId,
+  };
+}
+
+export async function createOutlineGenerationJob(
+  lessonId: string,
+  options?: { autoProcess?: boolean },
+) {
+  const db = getDatabase();
+  const lesson = db.prepare("SELECT * FROM lessons WHERE id = ?").get(lessonId) as LessonRow | undefined;
+
+  if (!lesson) {
+    throw new AppError("INVALID_REQUEST", "Lesson not found.");
+  }
+
+  const jobId = randomUUID();
+  const now = Date.now();
+
+  db.prepare(
+    `INSERT INTO lesson_jobs (id, lesson_id, status, stage, progress, message, error_message, created_at, updated_at)
+     VALUES (@id, @lesson_id, @status, @stage, @progress, @message, @error_message, @created_at, @updated_at)`,
+  ).run({
+    id: jobId,
+    lesson_id: lessonId,
+    status: "queued",
+    stage: "queued",
+    progress: 0,
+    message: "Queued for scene generation",
+    error_message: null,
+    created_at: now,
+    updated_at: now,
+  });
+
+  db.prepare(
+    `UPDATE lessons
+     SET status = ?, error_message = ?, updated_at = ?
+     WHERE id = ?`,
+  ).run("generating", null, now, lessonId);
+
+  if (options?.autoProcess !== false) {
+    void processLessonSceneJob(jobId);
   }
 
   return {
@@ -298,7 +349,170 @@ export async function regenerateLessonScene(lessonId: string, sceneId: string) {
   return getLessonById(lessonId);
 }
 
+export async function updateLessonOutline(lessonId: string, input: OutlineReviewUpdate) {
+  const title = input.lessonTitle.trim();
+
+  if (!title) {
+    throw new AppError("INVALID_REQUEST", "A lesson title is required.");
+  }
+
+  if (!input.items.length) {
+    throw new AppError("INVALID_REQUEST", "At least one outline item is required.");
+  }
+
+  const db = getDatabase();
+  const lesson = db.prepare("SELECT * FROM lessons WHERE id = ?").get(lessonId) as LessonRow | undefined;
+  if (!lesson) {
+    throw new AppError("INVALID_REQUEST", "Lesson not found.");
+  }
+
+  const storedItems = db
+    .prepare("SELECT * FROM outline_items WHERE lesson_id = ? ORDER BY display_order ASC")
+    .all(lessonId) as OutlineRow[];
+  const storedItemIds = new Set(storedItems.map((item) => item.id));
+
+  if (input.items.some((item) => !storedItemIds.has(item.id))) {
+    throw new AppError("INVALID_REQUEST", "Outline item mismatch.");
+  }
+
+  const now = Date.now();
+  db.prepare("UPDATE lessons SET title = ?, updated_at = ? WHERE id = ?").run(title, now, lessonId);
+
+  const updateOutline = db.prepare(
+    `UPDATE outline_items
+     SET title = ?, goal = ?, updated_at = ?
+     WHERE id = ? AND lesson_id = ?`,
+  );
+
+  input.items.forEach((item) => {
+    const nextTitle = item.title.trim();
+    if (!nextTitle) {
+      throw new AppError("INVALID_REQUEST", "Each outline item needs a title.");
+    }
+
+    updateOutline.run(nextTitle, item.goal?.trim() || null, now, item.id, lessonId);
+  });
+
+  return getLessonById(lessonId);
+}
+
+export async function processLessonOutlineJob(jobId: string) {
+  const db = getDatabase();
+  const job = db
+    .prepare("SELECT * FROM lesson_jobs WHERE id = ?")
+    .get(jobId) as JobRow | undefined;
+
+  if (!job) {
+    return;
+  }
+
+  const lesson = db
+    .prepare("SELECT * FROM lessons WHERE id = ?")
+    .get(job.lesson_id) as LessonRow | undefined;
+
+  if (!lesson) {
+    return;
+  }
+
+  const updateJob = db.prepare(
+    `UPDATE lesson_jobs
+     SET status = @status, stage = @stage, progress = @progress, message = @message, error_message = @error_message, updated_at = @updated_at
+     WHERE id = @id`,
+  );
+  const updateLesson = db.prepare(
+    `UPDATE lessons
+     SET title = @title, status = @status, error_message = @error_message, updated_at = @updated_at
+     WHERE id = @id`,
+  );
+  const insertOutline = db.prepare(
+    `INSERT INTO outline_items (id, lesson_id, title, goal, scene_type, display_order, created_at, updated_at)
+     VALUES (@id, @lesson_id, @title, @goal, @scene_type, @display_order, @created_at, @updated_at)`,
+  );
+
+  try {
+    updateJob.run({
+      id: jobId,
+      status: "generating_outline",
+      stage: "generating_outline",
+      progress: 30,
+      message: "Generating lesson outline",
+      error_message: null,
+      updated_at: Date.now(),
+    });
+
+    const outline = await generateLessonOutline({
+      prompt: lesson.prompt ?? "Teach me the key ideas from the uploaded material.",
+      language: lesson.language,
+      sourceText: lesson.source_upload_id
+        ? (await getUploadById(lesson.source_upload_id))?.extractedText
+        : undefined,
+    });
+
+    db.prepare("DELETE FROM outline_items WHERE lesson_id = ?").run(lesson.id);
+    db.prepare("DELETE FROM scenes WHERE lesson_id = ?").run(lesson.id);
+    const now = Date.now();
+    outline.outline.forEach((item, index) => {
+      insertOutline.run({
+        id: randomUUID(),
+        lesson_id: lesson.id,
+        title: item.title,
+        goal: item.goal ?? null,
+        scene_type: item.sceneType,
+        display_order: index + 1,
+        created_at: now,
+        updated_at: now,
+      });
+    });
+
+    updateLesson.run({
+      id: lesson.id,
+      title: outline.title,
+      status: "draft",
+      error_message: null,
+      updated_at: now,
+    });
+
+    updateJob.run({
+      id: jobId,
+      status: "awaiting_review",
+      stage: "generating_outline",
+      progress: 100,
+      message: "Outline ready for review",
+      error_message: null,
+      updated_at: now,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Lesson outline generation failed.";
+    const now = Date.now();
+    updateLesson.run({
+      id: lesson.id,
+      title: lesson.title,
+      status: "error",
+      error_message: message,
+      updated_at: now,
+    });
+    updateJob.run({
+      id: jobId,
+      status: "error",
+      stage: "error",
+      progress: 100,
+      message: "Outline generation failed",
+      error_message: message,
+      updated_at: now,
+    });
+  }
+}
+
 export async function processLessonJob(jobId: string) {
+  return processFullLessonJob(jobId, true);
+}
+
+export async function processLessonSceneJob(jobId: string) {
+  return processFullLessonJob(jobId, false);
+}
+
+async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
   const db = getDatabase();
   const job = db
     .prepare("SELECT * FROM lesson_jobs WHERE id = ?")
@@ -336,39 +550,47 @@ export async function processLessonJob(jobId: string) {
   );
 
   try {
-    updateJob.run({
-      id: jobId,
-      status: "generating_outline",
-      stage: "generating_outline",
-      progress: 25,
-      message: "Generating lesson outline",
-      error_message: null,
-      updated_at: Date.now(),
-    });
+    let lessonTitle = lesson.title;
+    let now = Date.now();
 
-    const outline = await generateLessonOutline({
-      prompt: lesson.prompt ?? "Teach me the key ideas from the uploaded material.",
-      language: lesson.language,
-      sourceText: lesson.source_upload_id
-        ? (await getUploadById(lesson.source_upload_id))?.extractedText
-        : undefined,
-    });
-
-    db.prepare("DELETE FROM outline_items WHERE lesson_id = ?").run(lesson.id);
-    db.prepare("DELETE FROM scenes WHERE lesson_id = ?").run(lesson.id);
-    const now = Date.now();
-    outline.outline.forEach((item, index) => {
-      insertOutline.run({
-        id: randomUUID(),
-        lesson_id: lesson.id,
-        title: item.title,
-        goal: item.goal ?? null,
-        scene_type: item.sceneType,
-        display_order: index + 1,
-        created_at: now,
+    if (regenerateOutline) {
+      updateJob.run({
+        id: jobId,
+        status: "generating_outline",
+        stage: "generating_outline",
+        progress: 25,
+        message: "Generating lesson outline",
+        error_message: null,
         updated_at: now,
       });
-    });
+
+      const outline = await generateLessonOutline({
+        prompt: lesson.prompt ?? "Teach me the key ideas from the uploaded material.",
+        language: lesson.language,
+        sourceText: lesson.source_upload_id
+          ? (await getUploadById(lesson.source_upload_id))?.extractedText
+          : undefined,
+      });
+
+      db.prepare("DELETE FROM outline_items WHERE lesson_id = ?").run(lesson.id);
+      db.prepare("DELETE FROM scenes WHERE lesson_id = ?").run(lesson.id);
+      now = Date.now();
+      outline.outline.forEach((item, index) => {
+        insertOutline.run({
+          id: randomUUID(),
+          lesson_id: lesson.id,
+          title: item.title,
+          goal: item.goal ?? null,
+          scene_type: item.sceneType,
+          display_order: index + 1,
+          created_at: now,
+          updated_at: now,
+        });
+      });
+      lessonTitle = outline.title;
+    } else {
+      db.prepare("DELETE FROM scenes WHERE lesson_id = ?").run(lesson.id);
+    }
 
     const outlineRows = db
       .prepare("SELECT * FROM outline_items WHERE lesson_id = ? ORDER BY display_order ASC")
@@ -399,7 +621,7 @@ export async function processLessonJob(jobId: string) {
 
       if (isLessonScene) {
         const scene = await generateLessonScene({
-          lessonTitle: outline.title,
+          lessonTitle,
           lessonPrompt: lesson.prompt ?? "",
           outlineTitle: outlineRow.title,
           outlineGoal: outlineRow.goal ?? undefined,
@@ -427,7 +649,7 @@ export async function processLessonJob(jobId: string) {
       }
 
       const quizScene = await generateQuizScene({
-        lessonTitle: outline.title,
+        lessonTitle,
         lessonPrompt: lesson.prompt ?? "",
         outlineTitle: outlineRow.title,
         outlineGoal: outlineRow.goal ?? undefined,
@@ -455,7 +677,7 @@ export async function processLessonJob(jobId: string) {
 
     updateLesson.run({
       id: lesson.id,
-      title: outline.title,
+      title: lessonTitle,
       status: "ready",
       error_message: null,
       updated_at: now,

@@ -41,6 +41,11 @@ export function GenerationStatusClient({ jobId }: Props) {
       if (cancelled) return;
       setJob(payload.data);
 
+      if (payload.data.status === "awaiting_review") {
+        router.replace(`/lessons/${payload.data.lessonId}/outline`);
+        return;
+      }
+
       if (payload.data.status === "ready") {
         router.replace(`/lessons/${payload.data.lessonId}`);
         return;
