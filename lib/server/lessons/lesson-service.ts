@@ -263,7 +263,7 @@ export async function createLessonRegenerationJob(
   ).run("generating", null, null, now, lessonId);
 
   if (options?.autoProcess !== false) {
-    void processLessonJob(jobId);
+    void processLessonOutlineJob(jobId);
   }
 
   return {

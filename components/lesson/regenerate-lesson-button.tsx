@@ -39,14 +39,14 @@ export function RegenerateLessonButton({
       return;
     }
 
-    router.push(`/generate/${payload.data.jobId}`);
+    router.push(`/lessons/${payload.data.lessonId}/outline`);
     router.refresh();
   }
 
   return (
     <>
       <button className={`button ${variant}`} type="button" onClick={handleRegenerate} disabled={isSubmitting}>
-        {isSubmitting ? "Regenerating..." : label}
+        {isSubmitting ? "Preparing review..." : label}
       </button>
       {error ? (
         <div className="status-box error">
