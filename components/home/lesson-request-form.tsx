@@ -2,8 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { listGenerationModes } from "@/lib/server/lessons/generation-mode";
 import type { ApiResponse } from "@/types/api";
 import type { UploadRecord } from "@/types/upload";
+import type { GenerationMode } from "@/types/lesson";
 
 type CreateLessonResult = {
   lessonId: string;
@@ -14,6 +16,7 @@ export function LessonRequestForm() {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
   const [language, setLanguage] = useState("en");
+  const [generationMode, setGenerationMode] = useState<GenerationMode>("balanced");
   const [status, setStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -85,6 +88,7 @@ export function LessonRequestForm() {
         prompt,
         language,
         uploadId,
+        generationMode,
       }),
     });
     const payload = (await response.json()) as ApiResponse<CreateLessonResult>;
@@ -142,6 +146,24 @@ export function LessonRequestForm() {
         >
           <option value="en">English</option>
         </select>
+      </div>
+
+      <div className="field">
+        <label htmlFor="generation-mode">Generation mode</label>
+        <select
+          id="generation-mode"
+          value={generationMode}
+          onChange={(event) => setGenerationMode(event.target.value as GenerationMode)}
+        >
+          {listGenerationModes().map((mode) => (
+            <option key={mode.id} value={mode.id}>
+              {mode.label}
+            </option>
+          ))}
+        </select>
+        <span className="field-hint">
+          {listGenerationModes().find((mode) => mode.id === generationMode)?.description}
+        </span>
       </div>
 
       <div className="button-row">

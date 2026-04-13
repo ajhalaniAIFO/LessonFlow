@@ -29,6 +29,7 @@ export const LESSONS_TABLE_SQL = `
     source_upload_id TEXT,
     source_type TEXT NOT NULL,
     language TEXT NOT NULL,
+    generation_mode TEXT NOT NULL DEFAULT 'balanced',
     status TEXT NOT NULL,
     error_message TEXT,
     last_viewed_scene_order INTEGER,

@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { getGenerationModeDefinition, resolveGenerationRequestSettings } from "@/lib/server/lessons/generation-mode";
 import { getProvider } from "@/lib/server/llm/provider-registry";
 import type { LLMProvider } from "@/lib/server/llm/types";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
@@ -22,6 +23,7 @@ export async function generateLessonScene(
     outlineTitle: string;
     outlineGoal?: string;
     language: string;
+    generationMode?: "fast" | "balanced" | "detailed";
     sourceContext?: SourceContext;
   },
   providerOverride?: LLMProvider,
@@ -29,6 +31,9 @@ export async function generateLessonScene(
   const settings = await getModelSettings();
   const provider = providerOverride ?? getProvider(settings.provider);
   const template = await loadPromptTemplate();
+  const generationMode = input.generationMode ?? "balanced";
+  const modeDefinition = getGenerationModeDefinition(generationMode);
+  const requestSettings = resolveGenerationRequestSettings(generationMode, settings);
 
   const prompt = `${template}
 
@@ -41,6 +46,8 @@ Requirements:
 - Each section must include "heading" and "body".
 - Use "bullets" only when they improve clarity.
 - Keep the tone instructional and practical.
+- Generation mode: ${modeDefinition.label}
+- Mode guidance: ${modeDefinition.sceneGuidance}
 - Language: ${input.language}
 
 Lesson title:
@@ -65,8 +72,8 @@ ${input.sourceContext?.highlights.join(", ") || "No source highlights available.
       baseUrl: settings.baseUrl,
       model: settings.model,
       prompt,
-      temperature: settings.temperature,
-      maxTokens: settings.maxTokens,
+      temperature: requestSettings.temperature,
+      maxTokens: requestSettings.maxTokens,
       timeoutMs: settings.timeoutMs,
     });
   } catch (error) {
