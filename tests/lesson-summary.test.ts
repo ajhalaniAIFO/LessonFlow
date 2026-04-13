@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildLessonSummary } from "@/lib/server/lessons/lesson-summary";
+import { buildLessonSummary, buildOutlineReviewPreview } from "@/lib/server/lessons/lesson-summary";
 import type { Lesson } from "@/types/lesson";
 
 const lesson: Lesson = {
@@ -65,5 +65,29 @@ describe("lesson-summary", () => {
     expect(summary).toContain("## Outline");
     expect(summary).toContain("Energy is conserved");
     expect(summary).toContain("Quiz 1: What does thermodynamics study?");
+  });
+
+  it("builds an outline review preview summary", () => {
+    const preview = buildOutlineReviewPreview({
+      lessonTitle: "Thermodynamics Basics",
+      items: [
+        { title: "Core concepts", goal: "Understand energy transfer", sceneType: "lesson" },
+        { title: "Applied examples", goal: "Connect the topic to real systems", sceneType: "lesson" },
+        { title: "Quick check", goal: "Test understanding", sceneType: "quiz" },
+      ],
+    });
+
+    expect(preview.summary).toContain("Thermodynamics Basics currently looks like");
+    expect(preview.summary).toContain('It opens with a teaching section: "Core concepts".');
+    expect(preview.highlights).toEqual([
+      "Understand energy transfer",
+      "Connect the topic to real systems",
+      "Test understanding",
+    ]);
+    expect(preview.totals).toEqual({
+      lessonScenes: 2,
+      quizScenes: 1,
+      totalItems: 3,
+    });
   });
 });
