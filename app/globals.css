@@ -299,6 +299,18 @@ select {
   gap: 12px;
 }
 
+.outline-preview-grid {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+@media (min-width: 760px) {
+  .outline-preview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .code-inline {
   font-family: Consolas, "Courier New", monospace;
   background: rgba(32, 82, 214, 0.08);

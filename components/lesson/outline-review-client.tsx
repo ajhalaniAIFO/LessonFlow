@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { ApiResponse } from "@/types/api";
+import { buildOutlineReviewPreview } from "@/lib/server/lessons/lesson-summary";
 import type { Lesson, OutlineReviewUpdate } from "@/types/lesson";
 
 type Props = {
@@ -29,6 +30,19 @@ export function OutlineReviewClient({ lesson }: Props) {
     const quizCount = items.filter((item) => item.sceneType === "quiz").length;
     return { lessonCount, quizCount };
   }, [items]);
+
+  const preview = useMemo(
+    () =>
+      buildOutlineReviewPreview({
+        lessonTitle,
+        items: items.map((item) => ({
+          title: item.title,
+          goal: item.goal || undefined,
+          sceneType: item.sceneType,
+        })),
+      }),
+    [items, lessonTitle],
+  );
 
   function moveItem(itemId: string, direction: "up" | "down") {
     setItems((current) => {
@@ -185,6 +199,33 @@ export function OutlineReviewClient({ lesson }: Props) {
             {lesson.prompt ?? "This outline was created from your uploaded material."}
           </p>
         </section>
+      </section>
+
+      <section className="card">
+        <h2>Planned lesson preview</h2>
+        <p className="status-copy">{preview.summary}</p>
+        <div className="outline-preview-grid">
+          <div className="status-box">
+            <p className="status-title">Structure totals</p>
+            <p className="status-copy">
+              {preview.totals.totalItems} total item{preview.totals.totalItems === 1 ? "" : "s"} with{" "}
+              {preview.totals.lessonScenes} teaching scene{preview.totals.lessonScenes === 1 ? "" : "s"} and{" "}
+              {preview.totals.quizScenes} quiz scene{preview.totals.quizScenes === 1 ? "" : "s"}.
+            </p>
+          </div>
+          <div className="status-box">
+            <p className="status-title">Goal highlights</p>
+            {preview.highlights.length ? (
+              <ul className="meta-list">
+                {preview.highlights.map((highlight) => (
+                  <li key={highlight}>{highlight}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="status-copy">Add goals to the outline items to build a clearer teaching brief.</p>
+            )}
+          </div>
+        </div>
       </section>
 
       <section className="card">

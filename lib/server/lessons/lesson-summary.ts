@@ -59,3 +59,53 @@ export function buildLessonSummary(lesson: Lesson) {
 
   return lines.join("\n").trim();
 }
+
+export function buildOutlineReviewPreview(input: {
+  lessonTitle: string;
+  items: Array<{
+    title: string;
+    goal?: string;
+    sceneType: "lesson" | "quiz";
+  }>;
+}) {
+  const lessonItems = input.items.filter((item) => item.sceneType === "lesson");
+  const quizItems = input.items.filter((item) => item.sceneType === "quiz");
+  const openingItem = input.items[0];
+  const closingItem = input.items[input.items.length - 1];
+
+  const emphasis = [
+    lessonItems.length >= 3 ? "a deeper teaching sequence" : "a concise teaching flow",
+    quizItems.length >= 2 ? "multiple knowledge checks" : "a light knowledge check rhythm",
+  ];
+
+  const lines: string[] = [];
+  lines.push(`${input.lessonTitle} currently looks like ${emphasis.join(" with ")}.`);
+
+  if (openingItem) {
+    lines.push(
+      `It opens with ${openingItem.sceneType === "lesson" ? "a teaching section" : "a quiz"}: "${openingItem.title}".`,
+    );
+  }
+
+  if (closingItem && closingItem !== openingItem) {
+    lines.push(
+      `It closes with ${closingItem.sceneType === "lesson" ? "a teaching section" : "a quiz"}: "${closingItem.title}".`,
+    );
+  }
+
+  const goals = input.items
+    .map((item) => item.goal?.trim())
+    .filter((goal): goal is string => Boolean(goal));
+
+  const highlights = goals.slice(0, 3);
+
+  return {
+    summary: lines.join(" "),
+    highlights,
+    totals: {
+      lessonScenes: lessonItems.length,
+      quizScenes: quizItems.length,
+      totalItems: input.items.length,
+    },
+  };
+}
