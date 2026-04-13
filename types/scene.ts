@@ -38,6 +38,17 @@ export type QuizAnswerResult = {
   explanation: string;
 };
 
+export type QuizAttempt = {
+  id: string;
+  sceneId: string;
+  score: {
+    correct: number;
+    total: number;
+  };
+  results: QuizAnswerResult[];
+  createdAt: number;
+};
+
 export type SceneStatus = "pending" | "ready" | "error";
 
 export type Scene = {
