@@ -1,6 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { getGenerationModeDefinition, resolveGenerationRequestSettings } from "@/lib/server/lessons/generation-mode";
+import {
+  getLearnerLevelDefinition,
+  getTeachingStyleDefinition,
+} from "@/lib/server/lessons/personalization";
 import { getProvider } from "@/lib/server/llm/provider-registry";
 import type { LLMProvider } from "@/lib/server/llm/types";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
@@ -14,14 +18,25 @@ async function loadPromptTemplate() {
 }
 
 export async function generateLessonOutline(
-  input: { prompt: string; language: string; sourceText?: string; generationMode?: "fast" | "balanced" | "detailed" },
+  input: {
+    prompt: string;
+    language: string;
+    sourceText?: string;
+    generationMode?: "fast" | "balanced" | "detailed";
+    learnerLevel?: "beginner" | "intermediate" | "advanced";
+    teachingStyle?: "concise" | "practical" | "step_by_step";
+  },
   providerOverride?: LLMProvider,
 ): Promise<OutlineResponse> {
   const settings = await getModelSettings();
   const provider = providerOverride ?? getProvider(settings.provider);
   const template = await loadPromptTemplate();
   const generationMode = input.generationMode ?? "balanced";
+  const learnerLevel = input.learnerLevel ?? "intermediate";
+  const teachingStyle = input.teachingStyle ?? "practical";
   const modeDefinition = getGenerationModeDefinition(generationMode);
+  const learnerLevelDefinition = getLearnerLevelDefinition(learnerLevel);
+  const teachingStyleDefinition = getTeachingStyleDefinition(teachingStyle);
   const requestSettings = resolveGenerationRequestSettings(generationMode, settings);
   const sourceContext = buildSourceContext({
     sourceText: input.sourceText,
@@ -41,6 +56,10 @@ Requirements:
 - Keep the lesson practical and progressive.
 - Generation mode: ${modeDefinition.label}
 - Mode guidance: ${modeDefinition.outlineGuidance}
+- Learner level: ${learnerLevelDefinition.label}
+- Learner level guidance: ${learnerLevelDefinition.guidance}
+- Teaching style: ${teachingStyleDefinition.label}
+- Teaching style guidance: ${teachingStyleDefinition.guidance}
 - Language: ${input.language}
 
 Learning request:

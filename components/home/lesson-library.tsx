@@ -104,7 +104,7 @@ export function LessonLibrary({ lessons: initialLessons }: Props) {
                 <>
                   <p className="status-title">{lesson.title}</p>
                   <p className="status-copy">
-                    Status: {lesson.status} | Mode: {lesson.generationMode} | Scenes: {lesson.sceneCount} | Updated:{" "}
+                    Status: {lesson.status} | Mode: {lesson.generationMode} | Level: {lesson.learnerLevel} | Style: {lesson.teachingStyle} | Scenes: {lesson.sceneCount} | Updated:{" "}
                     {new Date(lesson.updatedAt).toLocaleString()}
                   </p>
                   {lesson.status === "error" ? (

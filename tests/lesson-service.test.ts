@@ -39,6 +39,8 @@ describe("lesson-service", () => {
 
     expect(result.prompt).toBe("Teach me thermodynamics");
     expect(result.generationMode).toBe("balanced");
+    expect(result.learnerLevel).toBe("intermediate");
+    expect(result.teachingStyle).toBe("practical");
   });
 
   it("creates a lesson and job record", async () => {
@@ -98,6 +100,8 @@ describe("lesson-service", () => {
 
     expect(lesson?.title).toBe("Thermodynamics Basics");
     expect(lesson?.generationMode).toBe("balanced");
+    expect(lesson?.learnerLevel).toBe("intermediate");
+    expect(lesson?.teachingStyle).toBe("practical");
     expect(lesson?.outline).toHaveLength(3);
     expect(lesson?.scenes).toHaveLength(3);
     expect(lesson?.scenes[0]?.title).toBe("What Thermodynamics Studies");
@@ -141,6 +145,8 @@ describe("lesson-service", () => {
     expect(parsed.uploadId).toBe("upload-1");
     expect(parsed.prompt).toBeUndefined();
     expect(parsed.generationMode).toBe("balanced");
+    expect(parsed.learnerLevel).toBe("intermediate");
+    expect(parsed.teachingStyle).toBe("practical");
   });
 
   it("persists the selected generation mode on the lesson", async () => {
@@ -176,6 +182,8 @@ describe("lesson-service", () => {
         prompt: "Teach me thermodynamics",
         language: "en",
         generationMode: "detailed",
+        learnerLevel: "beginner",
+        teachingStyle: "step_by_step",
       },
       { autoProcess: false },
     );
@@ -184,6 +192,8 @@ describe("lesson-service", () => {
     const lesson = await getLessonById(created.lessonId);
 
     expect(lesson?.generationMode).toBe("detailed");
+    expect(lesson?.learnerLevel).toBe("beginner");
+    expect(lesson?.teachingStyle).toBe("step_by_step");
   });
 
   it("creates a regeneration job for an existing lesson", async () => {

@@ -13,6 +13,8 @@ import type {
   CreateLessonRequest,
   OutlineReviewUpdate,
   GenerationMode,
+  LearnerLevel,
+  TeachingStyle,
 } from "@/types/lesson";
 import type { LessonJob, LessonJobStatus } from "@/types/job";
 import type { Scene } from "@/types/scene";
@@ -25,6 +27,8 @@ type LessonRow = {
   source_type: Lesson["sourceType"];
   language: string;
   generation_mode: GenerationMode;
+  learner_level: LearnerLevel;
+  teaching_style: TeachingStyle;
   status: Lesson["status"];
   error_message: string | null;
   last_viewed_scene_order: number | null;
@@ -86,6 +90,8 @@ function mapLesson(row: LessonRow, outline: OutlineRow[], scenes: SceneRow[]): L
     sourceType: row.source_type,
     language: row.language,
     generationMode: row.generation_mode,
+    learnerLevel: row.learner_level,
+    teachingStyle: row.teaching_style,
     status: row.status,
     errorMessage: row.error_message ?? undefined,
     lastViewedSceneOrder: row.last_viewed_scene_order ?? undefined,
@@ -126,6 +132,8 @@ export function parseCreateLessonRequest(input: unknown): CreateLessonRequest {
   const language = String(raw.language ?? "en").trim() || "en";
   const uploadId = raw.uploadId ? String(raw.uploadId).trim() : undefined;
   const generationMode = String(raw.generationMode ?? "balanced").trim() as GenerationMode;
+  const learnerLevel = String(raw.learnerLevel ?? "intermediate").trim() as LearnerLevel;
+  const teachingStyle = String(raw.teachingStyle ?? "practical").trim() as TeachingStyle;
 
   if (!prompt && !uploadId) {
     throw new AppError("INVALID_REQUEST", "Provide a lesson prompt or an uploaded document.");
@@ -135,11 +143,21 @@ export function parseCreateLessonRequest(input: unknown): CreateLessonRequest {
     throw new AppError("INVALID_REQUEST", "A valid generation mode is required.");
   }
 
+  if (!["beginner", "intermediate", "advanced"].includes(learnerLevel)) {
+    throw new AppError("INVALID_REQUEST", "A valid learner level is required.");
+  }
+
+  if (!["concise", "practical", "step_by_step"].includes(teachingStyle)) {
+    throw new AppError("INVALID_REQUEST", "A valid teaching style is required.");
+  }
+
   return {
     prompt: prompt || undefined,
     language,
     uploadId,
     generationMode,
+    learnerLevel,
+    teachingStyle,
   };
 }
 
@@ -152,10 +170,12 @@ export async function createLessonJob(
   const jobId = randomUUID();
   const db = getDatabase();
   const generationMode = input.generationMode ?? "balanced";
+  const learnerLevel = input.learnerLevel ?? "intermediate";
+  const teachingStyle = input.teachingStyle ?? "practical";
 
   db.prepare(
-      `INSERT INTO lessons (id, title, prompt, source_upload_id, source_type, language, generation_mode, status, error_message, created_at, updated_at)
-     VALUES (@id, @title, @prompt, @source_upload_id, @source_type, @language, @generation_mode, @status, @error_message, @created_at, @updated_at)`,
+      `INSERT INTO lessons (id, title, prompt, source_upload_id, source_type, language, generation_mode, learner_level, teaching_style, status, error_message, created_at, updated_at)
+     VALUES (@id, @title, @prompt, @source_upload_id, @source_type, @language, @generation_mode, @learner_level, @teaching_style, @status, @error_message, @created_at, @updated_at)`,
   ).run({
     id: lessonId,
     title: "Generating lesson...",
@@ -164,6 +184,8 @@ export async function createLessonJob(
     source_type: input.prompt && input.uploadId ? "prompt_and_document" : input.uploadId ? "document" : "prompt",
     language: input.language,
     generation_mode: generationMode,
+    learner_level: learnerLevel,
+    teaching_style: teachingStyle,
     status: "generating",
     error_message: null,
     created_at: now,
@@ -324,6 +346,8 @@ export async function regenerateLessonScene(lessonId: string, sceneId: string) {
       outlineGoal: outlineRow.goal ?? undefined,
       language: lesson.language,
       generationMode: lesson.generationMode,
+      learnerLevel: lesson.learnerLevel,
+      teachingStyle: lesson.teachingStyle,
       sourceContext,
     });
 
@@ -358,6 +382,8 @@ export async function regenerateLessonScene(lessonId: string, sceneId: string) {
           : undefined,
       language: lesson.language,
       generationMode: lesson.generationMode,
+      learnerLevel: lesson.learnerLevel,
+      teachingStyle: lesson.teachingStyle,
       sourceContext,
     });
 
@@ -503,6 +529,8 @@ export async function processLessonOutlineJob(jobId: string) {
       prompt: lesson.prompt ?? "Teach me the key ideas from the uploaded material.",
       language: lesson.language,
       generationMode: lesson.generation_mode,
+      learnerLevel: lesson.learner_level,
+      teachingStyle: lesson.teaching_style,
       sourceText: lesson.source_upload_id
         ? (await getUploadById(lesson.source_upload_id))?.extractedText
         : undefined,
@@ -628,6 +656,8 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
         prompt: lesson.prompt ?? "Teach me the key ideas from the uploaded material.",
         language: lesson.language,
         generationMode: lesson.generation_mode,
+        learnerLevel: lesson.learner_level,
+        teachingStyle: lesson.teaching_style,
         sourceText: lesson.source_upload_id
           ? (await getUploadById(lesson.source_upload_id))?.extractedText
           : undefined,
@@ -697,6 +727,8 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
           outlineGoal: outlineRow.goal ?? undefined,
           language: lesson.language,
           generationMode: lesson.generation_mode,
+          learnerLevel: lesson.learner_level,
+          teachingStyle: lesson.teaching_style,
           sourceContext,
         });
 
@@ -738,6 +770,8 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
         keyTakeaways: latestLessonTakeaways,
         language: lesson.language,
         generationMode: lesson.generation_mode,
+        learnerLevel: lesson.learner_level,
+        teachingStyle: lesson.teaching_style,
         sourceContext,
       });
 
@@ -824,11 +858,13 @@ export async function listLessons(): Promise<LessonListItem[]> {
     .prepare(
       `SELECT lessons.id, lessons.title, lessons.status, lessons.updated_at,
               lessons.generation_mode,
+              lessons.learner_level,
+              lessons.teaching_style,
               lessons.last_viewed_scene_order,
               COUNT(scenes.id) AS scene_count
        FROM lessons
        LEFT JOIN scenes ON scenes.lesson_id = lessons.id
-       GROUP BY lessons.id, lessons.title, lessons.status, lessons.updated_at, lessons.generation_mode, lessons.last_viewed_scene_order
+       GROUP BY lessons.id, lessons.title, lessons.status, lessons.updated_at, lessons.generation_mode, lessons.learner_level, lessons.teaching_style, lessons.last_viewed_scene_order
        ORDER BY lessons.updated_at DESC`,
     )
     .all() as Array<{
@@ -836,6 +872,8 @@ export async function listLessons(): Promise<LessonListItem[]> {
     title: string;
     status: Lesson["status"];
     generation_mode: GenerationMode;
+    learner_level: LearnerLevel;
+    teaching_style: TeachingStyle;
     updated_at: number;
     scene_count: number;
     last_viewed_scene_order: number | null;
@@ -846,6 +884,8 @@ export async function listLessons(): Promise<LessonListItem[]> {
     title: row.title,
     status: row.status,
     generationMode: row.generation_mode,
+    learnerLevel: row.learner_level,
+    teachingStyle: row.teaching_style,
     sceneCount: row.scene_count,
     lastViewedSceneOrder: row.last_viewed_scene_order ?? undefined,
     updatedAt: row.updated_at,

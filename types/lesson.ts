@@ -1,6 +1,8 @@
 import type { Scene, SceneType } from "./scene";
 
 export type GenerationMode = "fast" | "balanced" | "detailed";
+export type LearnerLevel = "beginner" | "intermediate" | "advanced";
+export type TeachingStyle = "concise" | "practical" | "step_by_step";
 
 export type OutlineItem = {
   id: string;
@@ -20,6 +22,8 @@ export type Lesson = {
   sourceType: "prompt" | "document" | "prompt_and_document";
   language: string;
   generationMode: GenerationMode;
+  learnerLevel: LearnerLevel;
+  teachingStyle: TeachingStyle;
   status: LessonStatus;
   outline: OutlineItem[];
   scenes: Scene[];
@@ -34,6 +38,8 @@ export type CreateLessonRequest = {
   language: string;
   uploadId?: string;
   generationMode?: GenerationMode;
+  learnerLevel?: LearnerLevel;
+  teachingStyle?: TeachingStyle;
 };
 
 export type OutlineReviewUpdate = {
@@ -52,6 +58,8 @@ export type LessonListItem = {
   title: string;
   status: LessonStatus;
   generationMode: GenerationMode;
+  learnerLevel: LearnerLevel;
+  teachingStyle: TeachingStyle;
   sceneCount: number;
   lastViewedSceneOrder?: number;
   updatedAt: number;
