@@ -68,7 +68,7 @@ export default async function LessonPage({
       <section className="card">
         <h2>Lesson summary</h2>
         <p className="status-copy">
-          Copy or download a compact markdown summary of this lesson for notes, sharing, or review.
+          Copy the markdown summary or export this lesson as a styled web page or structured JSON package.
         </p>
         <LessonSummaryActions lessonId={lesson.id} lessonTitle={lesson.title} />
       </section>
