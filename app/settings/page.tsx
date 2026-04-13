@@ -25,12 +25,12 @@ export default async function SettingsPage() {
 
       <section className="hero">
         <span className="eyebrow">Week 2 Vertical Slice</span>
-        <h1>Connect LessonFlow to your local Ollama runtime.</h1>
+        <h1>Connect LessonFlow to your local runtime.</h1>
         <p>
           The app stores model settings in SQLite, can test runtime connectivity,
-          and can list installed models from your local endpoint. Once this slice
-          is stable, we can build lesson generation on top of it with much lower
-          risk.
+          and can list installed models from local endpoints like Ollama or an
+          OpenAI-compatible runtime. Once this slice is stable, we can build
+          lesson generation on top of it with much lower risk.
         </p>
       </section>
 
@@ -48,12 +48,16 @@ export default async function SettingsPage() {
               <span className="code-inline">http://127.0.0.1:11434</span>
             </li>
             <li>
-              Example model:{" "}
-              <span className="code-inline">qwen2.5:7b-instruct</span>
+              Example OpenAI-compatible URL:{" "}
+              <span className="code-inline">http://127.0.0.1:8000/v1</span>
             </li>
             <li>
-              If model discovery returns nothing, you can still type the model
-              name manually.
+              Example models:{" "}
+              <span className="code-inline">qwen2.5:7b-instruct</span> or{" "}
+              <span className="code-inline">google/gemma-3-4b-it</span>
+            </li>
+            <li>
+              If model discovery returns nothing, you can still type the model name manually.
             </li>
             <li>No cloud API key is required for this milestone.</li>
           </ul>

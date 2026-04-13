@@ -6,7 +6,7 @@ import type { ModelSettings } from "@/types/settings";
 const SETTINGS_KEY = "llm_config";
 
 const modelSettingsSchema = z.object({
-  provider: z.literal("ollama"),
+  provider: z.enum(["ollama", "openai_compatible"]),
   baseUrl: z.string().trim().url("Base URL must be a valid URL."),
   model: z.string().trim(),
   temperature: z.number().min(0).max(2),

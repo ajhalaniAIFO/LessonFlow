@@ -3,6 +3,7 @@ import { getProvider } from "@/lib/server/llm/provider-registry";
 import { AppError } from "@/lib/server/utils/errors";
 import type { ApiResponse } from "@/types/api";
 import type { ModelInfo } from "@/lib/server/llm/types";
+import type { ModelProvider } from "@/types/settings";
 
 type ModelsPayload = {
   models: ModelInfo[];
@@ -12,12 +13,13 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const baseUrl = searchParams.get("baseUrl");
+    const providerName = (searchParams.get("provider") as ModelProvider | null) ?? "ollama";
 
     if (!baseUrl) {
       throw new AppError("INVALID_REQUEST", "A baseUrl query parameter is required.");
     }
 
-    const provider = getProvider("ollama");
+    const provider = getProvider(providerName);
     const models = await provider.listModels(baseUrl);
 
     return NextResponse.json<ApiResponse<ModelsPayload>>({

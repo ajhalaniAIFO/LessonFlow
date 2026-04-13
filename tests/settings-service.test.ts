@@ -52,6 +52,29 @@ describe("settings-service", () => {
     expect(getDatabasePath()).toContain("lessonflow-test-");
   });
 
+  it("persists and reloads openai-compatible settings", async () => {
+    await saveModelSettings({
+      provider: "openai_compatible",
+      baseUrl: "http://127.0.0.1:8000/v1",
+      model: "google/gemma-3-4b-it",
+      temperature: 0.1,
+      maxTokens: 8192,
+      timeoutMs: 180000,
+    });
+
+    resetDatabase();
+    const settings = await getModelSettings();
+
+    expect(settings).toEqual({
+      provider: "openai_compatible",
+      baseUrl: "http://127.0.0.1:8000/v1",
+      model: "google/gemma-3-4b-it",
+      temperature: 0.1,
+      maxTokens: 8192,
+      timeoutMs: 180000,
+    });
+  });
+
   it("rejects invalid settings", () => {
     expect(() =>
       parseModelSettings({
