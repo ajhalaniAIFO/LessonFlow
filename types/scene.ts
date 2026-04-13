@@ -1,3 +1,5 @@
+import type { SourceContext } from "./upload";
+
 export type SceneType = "lesson" | "quiz";
 
 export type LessonSection = {
@@ -10,6 +12,7 @@ export type LessonSceneContent = {
   summary: string;
   sections: LessonSection[];
   keyTakeaways?: string[];
+  sourceContext?: SourceContext;
 };
 
 export type QuizQuestion = {
@@ -23,6 +26,7 @@ export type QuizQuestion = {
 
 export type QuizSceneContent = {
   questions: QuizQuestion[];
+  sourceContext?: SourceContext;
 };
 
 export type QuizAnswerSubmission = {

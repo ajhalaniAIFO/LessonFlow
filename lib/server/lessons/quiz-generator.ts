@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { getProvider } from "@/lib/server/llm/provider-registry";
 import type { LLMProvider } from "@/lib/server/llm/types";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
+import type { SourceContext } from "@/types/upload";
 import { AppError } from "@/lib/server/utils/errors";
 import type { QuizSceneContent } from "@/types/scene";
 import {
@@ -28,6 +29,7 @@ export async function generateQuizScene(
     sceneSummary?: string;
     keyTakeaways?: string[];
     language: string;
+    sourceContext?: SourceContext;
   },
   providerOverride?: LLMProvider,
 ): Promise<GeneratedQuizScene> {
@@ -63,7 +65,13 @@ Lesson scene summary:
 ${input.sceneSummary ?? "No summary provided."}
 
 Lesson key takeaways:
-${(input.keyTakeaways ?? []).join("; ") || "No key takeaways provided."}`;
+${(input.keyTakeaways ?? []).join("; ") || "No key takeaways provided."}
+
+Relevant source excerpt:
+${input.sourceContext?.excerpt ?? "No uploaded source excerpt provided."}
+
+Source highlights:
+${input.sourceContext?.highlights.join(", ") || "No source highlights available."}`;
 
   let parsed: unknown;
   try {

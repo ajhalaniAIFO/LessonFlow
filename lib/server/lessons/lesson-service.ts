@@ -3,6 +3,7 @@ import { getDatabase } from "@/lib/db/client";
 import { generateLessonOutline } from "@/lib/server/lessons/outline-generator";
 import { generateQuizScene } from "@/lib/server/lessons/quiz-generator";
 import { generateLessonScene } from "@/lib/server/lessons/scene-generator";
+import { buildSourceContext } from "@/lib/server/uploads/source-intelligence";
 import { getUploadById } from "@/lib/server/uploads/upload-service";
 import { AppError } from "@/lib/server/utils/errors";
 import type {
@@ -296,6 +297,13 @@ export async function regenerateLessonScene(lessonId: string, sceneId: string) {
 
   let content: Scene["content"];
   let title = scene.title;
+  const upload = lesson.sourceUploadId ? await getUploadById(lesson.sourceUploadId) : null;
+  const sourceContext = buildSourceContext({
+    sourceText: upload?.extractedText,
+    lessonPrompt: lesson.prompt ?? lesson.title,
+    outlineTitle: outlineRow.title,
+    outlineGoal: outlineRow.goal ?? undefined,
+  });
 
   if (scene.type === "lesson") {
     const nextScene = await generateLessonScene({
@@ -304,10 +312,14 @@ export async function regenerateLessonScene(lessonId: string, sceneId: string) {
       outlineTitle: outlineRow.title,
       outlineGoal: outlineRow.goal ?? undefined,
       language: lesson.language,
+      sourceContext,
     });
 
     title = nextScene.title;
-    content = nextScene;
+    content = {
+      ...nextScene,
+      sourceContext,
+    };
   } else {
     const priorLessonScene = [...lesson.scenes]
       .filter(
@@ -333,11 +345,13 @@ export async function regenerateLessonScene(lessonId: string, sceneId: string) {
           ? priorLessonScene.content.keyTakeaways
           : undefined,
       language: lesson.language,
+      sourceContext,
     });
 
       title = nextQuiz.title;
       content = {
         questions: nextQuiz.questions,
+        sourceContext,
       };
   }
 
@@ -627,6 +641,9 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
     const outlineRows = db
       .prepare("SELECT * FROM outline_items WHERE lesson_id = ? ORDER BY display_order ASC")
       .all(lesson.id) as OutlineRow[];
+    const sourceUpload = lesson.source_upload_id
+      ? await getUploadById(lesson.source_upload_id)
+      : null;
     let latestLessonSummary: string | undefined;
     let latestLessonTakeaways: string[] | undefined;
     const sceneRows = outlineRows.filter((row) => row.scene_type === "lesson" || row.scene_type === "quiz");
@@ -652,12 +669,19 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
       });
 
       if (isLessonScene) {
+        const sourceContext = buildSourceContext({
+          sourceText: sourceUpload?.extractedText,
+          lessonPrompt: lesson.prompt ?? lessonTitle,
+          outlineTitle: outlineRow.title,
+          outlineGoal: outlineRow.goal ?? undefined,
+        });
         const scene = await generateLessonScene({
           lessonTitle,
           lessonPrompt: lesson.prompt ?? "",
           outlineTitle: outlineRow.title,
           outlineGoal: outlineRow.goal ?? undefined,
           language: lesson.language,
+          sourceContext,
         });
 
         latestLessonSummary = scene.summary;
@@ -671,7 +695,10 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
           title: scene.title,
           display_order: outlineRow.display_order,
           status: "ready",
-          content_json: JSON.stringify(scene),
+          content_json: JSON.stringify({
+            ...scene,
+            sourceContext,
+          }),
           error_message: null,
           created_at: now,
           updated_at: now,
@@ -680,6 +707,12 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
         continue;
       }
 
+      const sourceContext = buildSourceContext({
+        sourceText: sourceUpload?.extractedText,
+        lessonPrompt: lesson.prompt ?? lessonTitle,
+        outlineTitle: outlineRow.title,
+        outlineGoal: outlineRow.goal ?? undefined,
+      });
       const quizScene = await generateQuizScene({
         lessonTitle,
         lessonPrompt: lesson.prompt ?? "",
@@ -688,6 +721,7 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
         sceneSummary: latestLessonSummary,
         keyTakeaways: latestLessonTakeaways,
         language: lesson.language,
+        sourceContext,
       });
 
       insertScene.run({
@@ -700,6 +734,7 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
         status: "ready",
         content_json: JSON.stringify({
           questions: quizScene.questions,
+          sourceContext,
         }),
         error_message: null,
         created_at: now,
