@@ -382,4 +382,57 @@ describe("lesson-service", () => {
     sceneSpy.mockRestore();
     quizSpy.mockRestore();
   });
+
+  it("stores reviewed outline order changes", async () => {
+    const outlineSpy = vi.spyOn(outlineGenerator, "generateLessonOutline").mockResolvedValue({
+      title: "Thermodynamics Basics",
+      outline: [
+        { title: "Intro", goal: "Start here", sceneType: "lesson" },
+        { title: "Deep dive", goal: "Go deeper", sceneType: "lesson" },
+        { title: "Quiz", goal: "Check understanding", sceneType: "quiz" },
+      ],
+    });
+
+    const created = await createLessonJob(
+      {
+        prompt: "Teach me thermodynamics",
+        language: "en",
+      },
+      { autoProcess: false },
+    );
+
+    await processLessonOutlineJob(created.jobId);
+    const lesson = await getLessonById(created.lessonId);
+
+    await updateLessonOutline(created.lessonId, {
+      lessonTitle: "Thermodynamics Reordered",
+      items: [
+        {
+          id: lesson!.outline[1]!.id,
+          title: "Deep dive",
+          goal: "Go deeper",
+          order: 1,
+        },
+        {
+          id: lesson!.outline[0]!.id,
+          title: "Intro",
+          goal: "Start here",
+          order: 2,
+        },
+        {
+          id: lesson!.outline[2]!.id,
+          title: "Quiz",
+          goal: "Check understanding",
+          order: 3,
+        },
+      ],
+    });
+
+    const updated = await getLessonById(created.lessonId);
+
+    expect(updated?.title).toBe("Thermodynamics Reordered");
+    expect(updated?.outline.map((item) => item.title)).toEqual(["Deep dive", "Intro", "Quiz"]);
+
+    outlineSpy.mockRestore();
+  });
 });

@@ -380,17 +380,18 @@ export async function updateLessonOutline(lessonId: string, input: OutlineReview
 
   const updateOutline = db.prepare(
     `UPDATE outline_items
-     SET title = ?, goal = ?, updated_at = ?
+     SET title = ?, goal = ?, display_order = ?, updated_at = ?
      WHERE id = ? AND lesson_id = ?`,
   );
 
-  input.items.forEach((item) => {
+  input.items.forEach((item, index) => {
     const nextTitle = item.title.trim();
     if (!nextTitle) {
       throw new AppError("INVALID_REQUEST", "Each outline item needs a title.");
     }
 
-    updateOutline.run(nextTitle, item.goal?.trim() || null, now, item.id, lessonId);
+    const nextOrder = item.order && item.order > 0 ? item.order : index + 1;
+    updateOutline.run(nextTitle, item.goal?.trim() || null, nextOrder, now, item.id, lessonId);
   });
 
   return getLessonById(lessonId);
