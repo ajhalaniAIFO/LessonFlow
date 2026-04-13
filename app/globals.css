@@ -247,6 +247,26 @@ select {
   color: var(--muted);
 }
 
+.document-preview {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(32, 82, 214, 0.12);
+}
+
+.document-preview-title {
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+
+.document-preview-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
 .code-inline {
   font-family: Consolas, "Courier New", monospace;
   background: rgba(32, 82, 214, 0.08);

@@ -18,36 +18,62 @@ export function LessonRequestForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadSummary, setUploadSummary] = useState<UploadRecord | null>(null);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+
+  const extractedPreview =
+    uploadSummary?.extractedText?.slice(0, 280).trim() ?? "";
+  const extractedCharacterCount = uploadSummary?.extractedText?.length ?? 0;
+
+  async function handleFileSelection(file: File | null) {
+    setSelectedFile(file);
+    setUploadSummary(null);
+    setStatus(null);
+
+    if (!file) {
+      return;
+    }
+
+    setIsUploadingFile(true);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const uploadResponse = await fetch("/api/uploads", {
+      method: "POST",
+      body: formData,
+    });
+    const uploadPayload = (await uploadResponse.json()) as ApiResponse<UploadRecord>;
+
+    setIsUploadingFile(false);
+
+    if (!uploadPayload.success) {
+      setStatus(uploadPayload.error.message);
+      return;
+    }
+
+    setUploadSummary(uploadPayload.data);
+
+    if (uploadPayload.data.extractionStatus !== "ready") {
+      setStatus(uploadPayload.data.errorMessage ?? "Document text extraction failed.");
+    }
+  }
 
   async function handleSubmit() {
     setIsSubmitting(true);
     setStatus(null);
 
-    let uploadId: string | undefined;
+    let uploadId = uploadSummary?.id;
 
-    if (selectedFile) {
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-      const uploadResponse = await fetch("/api/uploads", {
-        method: "POST",
-        body: formData,
-      });
-      const uploadPayload = (await uploadResponse.json()) as ApiResponse<UploadRecord>;
+    if (selectedFile && !uploadSummary) {
+      setIsSubmitting(false);
+      setStatus("Wait for document analysis to finish before generating the lesson.");
+      return;
+    }
 
-      if (!uploadPayload.success) {
-        setIsSubmitting(false);
-        setStatus(uploadPayload.error.message);
-        return;
-      }
-
-      setUploadSummary(uploadPayload.data);
-      if (uploadPayload.data.extractionStatus !== "ready") {
-        setIsSubmitting(false);
-        setStatus(uploadPayload.data.errorMessage ?? "Document text extraction failed.");
-        return;
-      }
-
-      uploadId = uploadPayload.data.id;
+    if (selectedFile && uploadSummary?.extractionStatus !== "ready") {
+      setIsSubmitting(false);
+      setStatus(uploadSummary?.errorMessage ?? "Document text extraction failed.");
+      return;
     }
 
     const response = await fetch("/api/lessons", {
@@ -99,9 +125,7 @@ export function LessonRequestForm() {
           type="file"
           accept=".txt,.md,.markdown,.json,.csv,.pdf,text/plain,text/markdown,application/pdf"
           onChange={(event) => {
-            const file = event.target.files?.[0] ?? null;
-            setSelectedFile(file);
-            setUploadSummary(null);
+            void handleFileSelection(event.target.files?.[0] ?? null);
           }}
         />
         <span className="field-hint">
@@ -124,21 +148,60 @@ export function LessonRequestForm() {
         <button
           className="button primary"
           type="button"
-          disabled={isSubmitting || (prompt.trim().length === 0 && !selectedFile)}
+          disabled={
+            isSubmitting ||
+            isUploadingFile ||
+            (prompt.trim().length === 0 && !selectedFile)
+          }
           onClick={handleSubmit}
         >
-          {isSubmitting ? "Creating..." : "Generate lesson outline"}
+          {isUploadingFile
+            ? "Analyzing document..."
+            : isSubmitting
+              ? "Creating..."
+              : "Generate lesson outline"}
         </button>
+        {selectedFile ? (
+          <button
+            className="button secondary"
+            type="button"
+            disabled={isSubmitting || isUploadingFile}
+            onClick={() => {
+              setSelectedFile(null);
+              setUploadSummary(null);
+              setStatus(null);
+            }}
+          >
+            Remove document
+          </button>
+        ) : null}
       </div>
 
       {uploadSummary ? (
-        <div className={`status-box ${uploadSummary.extractionStatus === "ready" ? "success" : "error"}`}>
+        <div
+          className={`status-box ${uploadSummary.extractionStatus === "ready" ? "success" : "error"}`}
+        >
           <p className="status-title">Uploaded document</p>
           <p className="status-copy">
-            {uploadSummary.filename} - {uploadSummary.extractionStatus}
-            {uploadSummary.extractedText
-              ? ` - extracted ${uploadSummary.extractedText.length} characters`
-              : ""}
+            {uploadSummary.filename} - {uploadSummary.extractionStatus} - {extractedCharacterCount} extracted characters
+          </p>
+          {extractedPreview ? (
+            <div className="document-preview">
+              <p className="document-preview-title">Preview excerpt</p>
+              <p className="document-preview-copy">
+                {extractedPreview}
+                {extractedCharacterCount > extractedPreview.length ? "..." : ""}
+              </p>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {isUploadingFile ? (
+        <div className="status-box">
+          <p className="status-title">Analyzing document</p>
+          <p className="status-copy">
+            Pulling local text from {selectedFile?.name ?? "your file"} so you can review it before generation.
           </p>
         </div>
       ) : null}
