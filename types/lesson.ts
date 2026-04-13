@@ -37,6 +37,7 @@ export type OutlineReviewUpdate = {
     id: string;
     title: string;
     goal?: string;
+    order?: number;
   }>;
 };
 

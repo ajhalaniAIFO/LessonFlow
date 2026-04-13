@@ -31,6 +31,29 @@ export function OutlineReviewClient({ lesson }: Props) {
     return { lessonCount, quizCount };
   }, [items]);
 
+  function moveItem(itemId: string, direction: "up" | "down") {
+    setItems((current) => {
+      const index = current.findIndex((item) => item.id === itemId);
+      if (index < 0) {
+        return current;
+      }
+
+      const targetIndex = direction === "up" ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= current.length) {
+        return current;
+      }
+
+      const next = [...current];
+      const [item] = next.splice(index, 1);
+      next.splice(targetIndex, 0, item);
+
+      return next.map((entry, order) => ({
+        ...entry,
+        order: order + 1,
+      }));
+    });
+  }
+
   async function saveOutline() {
     setIsSaving(true);
     setStatus(null);
@@ -41,6 +64,7 @@ export function OutlineReviewClient({ lesson }: Props) {
         id: item.id,
         title: item.title,
         goal: item.goal || undefined,
+        order: item.order,
       })),
     };
 
@@ -146,6 +170,24 @@ export function OutlineReviewClient({ lesson }: Props) {
             <div key={item.id} className="outline-review-item">
               <div className="outline-review-order">{index + 1}</div>
               <div className="outline-review-fields">
+                <div className="button-row">
+                  <button
+                    className="button secondary"
+                    type="button"
+                    disabled={index === 0 || isSaving || isContinuing}
+                    onClick={() => moveItem(item.id, "up")}
+                  >
+                    Move up
+                  </button>
+                  <button
+                    className="button secondary"
+                    type="button"
+                    disabled={index === items.length - 1 || isSaving || isContinuing}
+                    onClick={() => moveItem(item.id, "down")}
+                  >
+                    Move down
+                  </button>
+                </div>
                 <div className="field">
                   <label htmlFor={`outline-title-${item.id}`}>Section title</label>
                   <input
