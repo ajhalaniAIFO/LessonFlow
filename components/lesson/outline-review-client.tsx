@@ -4,12 +4,14 @@ import { useMemo, useState } from "react";
 import type { ApiResponse } from "@/types/api";
 import { buildOutlineReviewPreview } from "@/lib/server/lessons/lesson-summary";
 import type { Lesson, OutlineReviewUpdate } from "@/types/lesson";
+import type { UploadRecord } from "@/types/upload";
 
 type Props = {
   lesson: Lesson;
+  sourceUpload?: UploadRecord | null;
 };
 
-export function OutlineReviewClient({ lesson }: Props) {
+export function OutlineReviewClient({ lesson, sourceUpload }: Props) {
   const router = useRouter();
   const [lessonTitle, setLessonTitle] = useState(lesson.title);
   const [items, setItems] = useState(
@@ -43,6 +45,7 @@ export function OutlineReviewClient({ lesson }: Props) {
       }),
     [items, lessonTitle],
   );
+  const sourceExcerpt = sourceUpload?.extractedText?.slice(0, 420).trim() ?? "";
 
   function moveItem(itemId: string, direction: "up" | "down") {
     setItems((current) => {
@@ -198,6 +201,24 @@ export function OutlineReviewClient({ lesson }: Props) {
           <p className="status-copy">
             {lesson.prompt ?? "This outline was created from your uploaded material."}
           </p>
+          {sourceUpload ? (
+            <div className="outline-source-card">
+              <p className="status-title">Uploaded source</p>
+              <p className="status-copy">
+                {sourceUpload.filename} • {sourceUpload.sizeBytes.toLocaleString()} bytes •{" "}
+                {sourceUpload.extractedText?.length ?? 0} extracted characters
+              </p>
+              {sourceExcerpt ? (
+                <div className="document-preview">
+                  <p className="document-preview-title">Source excerpt</p>
+                  <p className="document-preview-copy">
+                    {sourceExcerpt}
+                    {(sourceUpload.extractedText?.length ?? 0) > sourceExcerpt.length ? "..." : ""}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </section>
       </section>
 
