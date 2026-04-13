@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "migrate": "tsx scripts/migrate.ts",
     "dev-check": "tsx scripts/dev-check.ts"
   },
@@ -26,6 +27,7 @@
     "@types/pdf-parse": "^1.1.5",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
+    "@playwright/test": "^1.54.2",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
     "vitest": "^3.1.2"
