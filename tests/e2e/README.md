@@ -7,6 +7,7 @@ Current scope:
 - primary lesson creation controls are visible
 - settings flow can save, test, and load models through mocked API responses
 - lesson request flow can reach the outline review step with seeded test data
+- outline review can continue into the lesson experience with seeded lesson scenes
 
 Before running locally:
 1. install dependencies with `npm install`
