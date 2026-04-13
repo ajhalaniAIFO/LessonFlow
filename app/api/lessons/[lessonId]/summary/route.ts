@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import { getLessonById } from "@/lib/server/lessons/lesson-service";
-import { buildLessonSummary } from "@/lib/server/lessons/lesson-summary";
+import { buildLessonExport, type LessonExportFormat } from "@/lib/server/lessons/lesson-summary";
 import type { ApiResponse } from "@/types/api";
 
 type SummaryResponse = {
-  markdown: string;
+  format: LessonExportFormat;
+  content: string;
+  mimeType: string;
+  filename: string;
 };
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ lessonId: string }> },
 ) {
   const { lessonId } = await context.params;
@@ -27,10 +30,19 @@ export async function GET(
     );
   }
 
+  const { searchParams } = new URL(request.url);
+  const rawFormat = searchParams.get("format");
+  const format: LessonExportFormat =
+    rawFormat === "html" || rawFormat === "json" ? rawFormat : "markdown";
+  const exported = buildLessonExport(lesson, format);
+
   return NextResponse.json<ApiResponse<SummaryResponse>>({
     success: true,
     data: {
-      markdown: buildLessonSummary(lesson),
+      format,
+      content: exported.content,
+      mimeType: exported.mimeType,
+      filename: exported.filename,
     },
   });
 }

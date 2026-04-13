@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildLessonSummary, buildOutlineReviewPreview } from "@/lib/server/lessons/lesson-summary";
+import {
+  buildLessonExport,
+  buildLessonSummary,
+  buildOutlineReviewPreview,
+} from "@/lib/server/lessons/lesson-summary";
 import type { Lesson } from "@/types/lesson";
 
 const lesson: Lesson = {
@@ -89,5 +93,21 @@ describe("lesson-summary", () => {
       quizScenes: 1,
       totalItems: 3,
     });
+  });
+
+  it("builds html and json lesson exports", () => {
+    const htmlExport = buildLessonExport(lesson, "html");
+    const jsonExport = buildLessonExport(lesson, "json");
+
+    expect(htmlExport.mimeType).toBe("text/html;charset=utf-8");
+    expect(htmlExport.filename).toBe("thermodynamics-basics-lesson.html");
+    expect(htmlExport.content).toContain("<!doctype html>");
+    expect(htmlExport.content).toContain("LessonFlow Export");
+    expect(htmlExport.content).toContain("Thermodynamics explains energy, heat, and work.");
+
+    expect(jsonExport.mimeType).toBe("application/json;charset=utf-8");
+    expect(jsonExport.filename).toBe("thermodynamics-basics-lesson.json");
+    expect(jsonExport.content).toContain('"title": "Thermodynamics Basics"');
+    expect(jsonExport.content).toContain('"takeaways"');
   });
 });
