@@ -14,6 +14,7 @@ export type Lesson = {
   id: string;
   title: string;
   prompt?: string;
+  sourceUploadId?: string;
   sourceType: "prompt" | "document" | "prompt_and_document";
   language: string;
   status: LessonStatus;

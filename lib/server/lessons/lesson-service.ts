@@ -79,6 +79,7 @@ function mapLesson(row: LessonRow, outline: OutlineRow[], scenes: SceneRow[]): L
     id: row.id,
     title: row.title,
     prompt: row.prompt ?? undefined,
+    sourceUploadId: row.source_upload_id ?? undefined,
     sourceType: row.source_type,
     language: row.language,
     status: row.status,

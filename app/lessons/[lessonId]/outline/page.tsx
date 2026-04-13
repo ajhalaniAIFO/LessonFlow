@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { OutlineReviewClient } from "@/components/lesson/outline-review-client";
 import { getLessonById } from "@/lib/server/lessons/lesson-service";
+import { getUploadById } from "@/lib/server/uploads/upload-service";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,10 @@ export default async function LessonOutlineReviewPage({
 }) {
   const { lessonId } = await params;
   const lesson = await getLessonById(lessonId);
+  const sourceUpload =
+    lesson?.sourceType !== "prompt" && lesson?.sourceUploadId
+      ? await getUploadById(lesson.sourceUploadId)
+      : null;
 
   if (!lesson) {
     return (
@@ -36,7 +41,7 @@ export default async function LessonOutlineReviewPage({
         </div>
       </nav>
 
-      <OutlineReviewClient lesson={lesson} />
+      <OutlineReviewClient lesson={lesson} sourceUpload={sourceUpload} />
     </main>
   );
 }
