@@ -18,6 +18,84 @@ function normalizeBaseUrl(baseUrl: string) {
   return baseUrl.replace(/\/+$/, "");
 }
 
+function extractJsonSegment(text: string) {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  const directCandidate = trimmed
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+
+  try {
+    JSON.parse(directCandidate);
+    return directCandidate;
+  } catch {
+    // Fall through to segmented extraction.
+  }
+
+  const startMatch = /[\[{]/.exec(trimmed);
+  if (!startMatch) {
+    throw new Error("Model did not return JSON content.");
+  }
+
+  const startIndex = startMatch.index;
+  const opening = trimmed[startIndex];
+  const closing = opening === "{" ? "}" : "]";
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = startIndex; index < trimmed.length; index += 1) {
+    const char = trimmed[index];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (char === "\\") {
+        escaped = true;
+        continue;
+      }
+
+      if (char === '"') {
+        inString = false;
+      }
+
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === opening) {
+      depth += 1;
+      continue;
+    }
+
+    if (char === closing) {
+      depth -= 1;
+      if (depth === 0) {
+        return trimmed.slice(startIndex, index + 1);
+      }
+    }
+  }
+
+  throw new Error("Model returned incomplete JSON content.");
+}
+
+export function parseStructuredJson<T>(text: string): T {
+  const candidate = extractJsonSegment(text);
+  return JSON.parse(candidate) as T;
+}
+
 export class OllamaProvider implements LLMProvider {
   async healthCheck(baseUrl: string, model: string): Promise<HealthStatus> {
     const cleanedBaseUrl = normalizeBaseUrl(baseUrl);
@@ -120,6 +198,6 @@ export class OllamaProvider implements LLMProvider {
 
   async generateStructuredJson<T>(request: PromptRequest): Promise<T> {
     const result = await this.generateText(request);
-    return JSON.parse(result.text) as T;
+    return parseStructuredJson<T>(result.text);
   }
 }

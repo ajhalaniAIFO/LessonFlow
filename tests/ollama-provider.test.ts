@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { OllamaProvider } from "@/lib/server/llm/ollama-provider";
+import { OllamaProvider, parseStructuredJson } from "@/lib/server/llm/ollama-provider";
 
 describe("OllamaProvider", () => {
   const provider = new OllamaProvider();
@@ -74,5 +74,27 @@ describe("OllamaProvider", () => {
       { id: "qwen2.5:7b-instruct", label: "qwen2.5:7b-instruct" },
       { id: "llama3.1:8b-instruct", label: "llama3.1:8b-instruct" },
     ]);
+  });
+
+  it("parses structured JSON when the model adds a prose preamble", () => {
+    const parsed = parseStructuredJson<{ title: string; outline: unknown[] }>(
+      'Here is a valid lesson outline as JSON:\n{"title":"Test lesson","outline":[]}',
+    );
+
+    expect(parsed).toEqual({
+      title: "Test lesson",
+      outline: [],
+    });
+  });
+
+  it("parses structured JSON from fenced json blocks", () => {
+    const parsed = parseStructuredJson<{ title: string; outline: unknown[] }>(
+      '```json\n{"title":"Test lesson","outline":[]}\n```',
+    );
+
+    expect(parsed).toEqual({
+      title: "Test lesson",
+      outline: [],
+    });
   });
 });
