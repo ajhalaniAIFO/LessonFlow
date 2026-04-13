@@ -1,4 +1,4 @@
-export type ModelProvider = "ollama";
+export type ModelProvider = "ollama" | "openai_compatible";
 
 export type ModelSettings = {
   provider: ModelProvider;
@@ -8,4 +8,3 @@ export type ModelSettings = {
   maxTokens: number;
   timeoutMs: number;
 };
-

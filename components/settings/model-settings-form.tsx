@@ -34,6 +34,16 @@ export function SettingsForm({ initialSettings }: FormProps) {
     () => modelOptions.some((model) => model.id === form.model),
     [form.model, modelOptions],
   );
+  const providerBaseUrlPlaceholder =
+    form.provider === "ollama"
+      ? "http://127.0.0.1:11434"
+      : "http://127.0.0.1:8000/v1";
+  const providerModelPlaceholder =
+    form.provider === "ollama" ? "qwen2.5:7b-instruct" : "google/gemma-3-4b-it";
+  const providerBaseUrlHint =
+    form.provider === "ollama"
+      ? "Use your local Ollama endpoint."
+      : "Use the base URL for your local OpenAI-compatible endpoint, such as vLLM or llama.cpp server mode.";
 
   function updateField<K extends keyof ModelSettings>(key: K, value: ModelSettings[K]) {
     setForm((current) => ({
@@ -113,6 +123,7 @@ export function SettingsForm({ initialSettings }: FormProps) {
     setStatus(null);
     const query = new URLSearchParams({
       baseUrl: form.baseUrl,
+      provider: form.provider,
     });
 
     startLoadingModels(async () => {
@@ -152,6 +163,7 @@ export function SettingsForm({ initialSettings }: FormProps) {
           onChange={(event) => updateField("provider", event.target.value as ModelSettings["provider"])}
         >
           <option value="ollama">Ollama</option>
+          <option value="openai_compatible">OpenAI-compatible local runtime</option>
         </select>
       </div>
 
@@ -161,9 +173,9 @@ export function SettingsForm({ initialSettings }: FormProps) {
           id="baseUrl"
           value={form.baseUrl}
           onChange={(event) => updateField("baseUrl", event.target.value)}
-          placeholder="http://127.0.0.1:11434"
+          placeholder={providerBaseUrlPlaceholder}
         />
-        <span className="field-hint">Use your local Ollama endpoint.</span>
+        <span className="field-hint">{providerBaseUrlHint}</span>
       </div>
 
       <div className="field">
@@ -172,7 +184,7 @@ export function SettingsForm({ initialSettings }: FormProps) {
           id="model"
           value={form.model}
           onChange={(event) => updateField("model", event.target.value)}
-          placeholder="qwen2.5:7b-instruct"
+          placeholder={providerModelPlaceholder}
           list="model-options"
         />
         <datalist id="model-options">
