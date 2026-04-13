@@ -32,4 +32,14 @@ describe("upload-service", () => {
     expect(upload.extractedText).toContain("Thermodynamics");
     expect(loaded?.filename).toBe("thermodynamics.txt");
   });
+
+  it("trims extracted text before storing it", async () => {
+    const file = new File(["  Heat and work matter.  "], "notes.txt", {
+      type: "text/plain",
+    });
+
+    const upload = await createUpload(file);
+
+    expect(upload.extractedText).toBe("Heat and work matter.");
+  });
 });
