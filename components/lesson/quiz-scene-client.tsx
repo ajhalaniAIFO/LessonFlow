@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ApiResponse } from "@/types/api";
-import type { QuizAnswerResult, QuizSceneContent } from "@/types/scene";
+import type { QuizAnswerResult, QuizAttempt, QuizSceneContent } from "@/types/scene";
 
 type GradeResponse = {
   attemptId: string;
@@ -23,8 +23,29 @@ type Props = {
 export function QuizSceneClient({ lessonId, sceneId, title, content }: Props) {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [result, setResult] = useState<GradeResponse | null>(null);
+  const [history, setHistory] = useState<QuizAttempt[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadHistory() {
+      const response = await fetch(`/api/lessons/${lessonId}/quizzes/${sceneId}/grade`, {
+        cache: "no-store",
+      });
+      const payload = (await response.json()) as ApiResponse<{ attempts: QuizAttempt[] }>;
+
+      if (active && payload.success) {
+        setHistory(payload.data.attempts);
+      }
+    }
+
+    void loadHistory();
+    return () => {
+      active = false;
+    };
+  }, [lessonId, sceneId]);
 
   async function handleSubmit() {
     setIsSubmitting(true);
@@ -52,6 +73,16 @@ export function QuizSceneClient({ lessonId, sceneId, title, content }: Props) {
     }
 
     setResult(payload.data);
+    setHistory((current) => [
+      {
+        id: payload.data.attemptId,
+        sceneId,
+        score: payload.data.score,
+        results: payload.data.results,
+        createdAt: Date.now(),
+      },
+      ...current,
+    ]);
   }
 
   return (
@@ -119,6 +150,24 @@ export function QuizSceneClient({ lessonId, sceneId, title, content }: Props) {
         <div className="status-box error">
           <p className="status-title">Unable to grade quiz</p>
           <p className="status-copy">{error}</p>
+        </div>
+      ) : null}
+
+      {history.length > 0 ? (
+        <div className="status-box">
+          <p className="status-title">Previous attempts</p>
+          {history.slice(0, 3).map((attempt) => (
+            <div key={attempt.id} style={{ marginBottom: "12px" }}>
+              <p className="status-copy">
+                {new Date(attempt.createdAt).toLocaleString()} — {attempt.score.correct}/{attempt.score.total} correct
+              </p>
+              {attempt.results.map((entry) => (
+                <p key={entry.questionId} className="field-hint" style={{ margin: "4px 0 0" }}>
+                  {entry.correct ? "Correct" : "Review"}: {entry.explanation}
+                </p>
+              ))}
+            </div>
+          ))}
         </div>
       ) : null}
     </article>

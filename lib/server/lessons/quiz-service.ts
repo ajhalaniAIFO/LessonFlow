@@ -1,12 +1,35 @@
 import { randomUUID } from "node:crypto";
 import { getDatabase } from "@/lib/db/client";
 import { AppError } from "@/lib/server/utils/errors";
-import type { QuizAnswerResult, QuizAnswerSubmission, QuizSceneContent } from "@/types/scene";
+import type {
+  QuizAnswerResult,
+  QuizAnswerSubmission,
+  QuizAttempt,
+  QuizSceneContent,
+} from "@/types/scene";
 
 type GradeQuizInput = {
   lessonId: string;
   sceneId: string;
   answers: QuizAnswerSubmission[];
+};
+
+type AttemptRow = {
+  id: string;
+  lesson_id: string;
+  scene_id: string;
+  score_correct: number;
+  score_total: number;
+  created_at: number;
+};
+
+type AnswerRow = {
+  attempt_id: string;
+  question_id: string;
+  selected_index: number;
+  correct_index: number;
+  is_correct: number;
+  explanation: string;
 };
 
 function isQuizSceneContent(content: unknown): content is QuizSceneContent {
@@ -88,4 +111,47 @@ export function gradeQuizAnswers(input: GradeQuizInput) {
       total: scoreTotal,
     },
   };
+}
+
+export function listQuizAttempts(lessonId: string, sceneId: string): QuizAttempt[] {
+  const db = getDatabase();
+  const attempts = db
+    .prepare(
+      `SELECT * FROM quiz_attempts
+       WHERE lesson_id = ? AND scene_id = ?
+       ORDER BY created_at DESC`,
+    )
+    .all(lessonId, sceneId) as AttemptRow[];
+
+  if (attempts.length === 0) {
+    return [];
+  }
+
+  const answers = db
+    .prepare(
+      `SELECT attempt_id, question_id, selected_index, correct_index, is_correct, explanation
+       FROM quiz_answers
+       WHERE attempt_id IN (${attempts.map(() => "?").join(", ")})
+       ORDER BY created_at ASC`,
+    )
+    .all(...attempts.map((attempt) => attempt.id)) as AnswerRow[];
+
+  return attempts.map((attempt) => ({
+    id: attempt.id,
+    sceneId: attempt.scene_id,
+    score: {
+      correct: attempt.score_correct,
+      total: attempt.score_total,
+    },
+    results: answers
+      .filter((answer) => answer.attempt_id === attempt.id)
+      .map((answer) => ({
+        questionId: answer.question_id,
+        selectedIndex: answer.selected_index,
+        correctIndex: answer.correct_index,
+        correct: answer.is_correct === 1,
+        explanation: answer.explanation,
+      })),
+    createdAt: attempt.created_at,
+  }));
 }
