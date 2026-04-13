@@ -6,3 +6,5 @@ data/*.db-*
 data/uploads/*
 !data/uploads/.gitkeep
 lessonflow-dev*.log
+test-results/
+playwright-report/
