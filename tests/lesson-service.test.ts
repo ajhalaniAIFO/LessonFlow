@@ -491,4 +491,52 @@ describe("lesson-service", () => {
 
     outlineSpy.mockRestore();
   });
+
+  it("stores reviewed scene type changes", async () => {
+    const outlineSpy = vi.spyOn(outlineGenerator, "generateLessonOutline").mockResolvedValue({
+      title: "Thermodynamics Basics",
+      outline: [
+        { title: "Intro", goal: "Start here", sceneType: "lesson" },
+        { title: "Wrap-up", goal: "Close the lesson", sceneType: "lesson" },
+      ],
+    });
+
+    const created = await createLessonJob(
+      {
+        prompt: "Teach me thermodynamics",
+        language: "en",
+      },
+      { autoProcess: false },
+    );
+
+    await processLessonOutlineJob(created.jobId);
+    const lesson = await getLessonById(created.lessonId);
+
+    await updateLessonOutline(created.lessonId, {
+      lessonTitle: "Thermodynamics Mixed Format",
+      items: [
+        {
+          id: lesson!.outline[0]!.id,
+          title: "Intro",
+          goal: "Start here",
+          order: 1,
+          sceneType: "lesson",
+        },
+        {
+          id: lesson!.outline[1]!.id,
+          title: "Wrap-up check",
+          goal: "Close with a check for understanding",
+          order: 2,
+          sceneType: "quiz",
+        },
+      ],
+    });
+
+    const updated = await getLessonById(created.lessonId);
+
+    expect(updated?.outline.map((item) => item.sceneType)).toEqual(["lesson", "quiz"]);
+    expect(updated?.outline[1]?.title).toBe("Wrap-up check");
+
+    outlineSpy.mockRestore();
+  });
 });
