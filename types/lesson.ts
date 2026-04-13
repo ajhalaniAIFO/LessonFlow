@@ -31,6 +31,15 @@ export type CreateLessonRequest = {
   uploadId?: string;
 };
 
+export type OutlineReviewUpdate = {
+  lessonTitle: string;
+  items: Array<{
+    id: string;
+    title: string;
+    goal?: string;
+  }>;
+};
+
 export type LessonListItem = {
   id: string;
   title: string;

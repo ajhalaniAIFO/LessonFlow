@@ -57,6 +57,20 @@ describe("job-progress helpers", () => {
     expect(getJobHeadline(job)).toBe("Lesson generation needs attention");
   });
 
+  it("surfaces the outline review checkpoint clearly", () => {
+    const job = createJob({
+      status: "awaiting_review",
+      stage: "generating_outline",
+      progress: 100,
+      message: "Outline ready for review",
+    });
+
+    expect(getStageState(job, generationStages[1].key)).toBe("complete");
+    expect(getStageState(job, generationStages[2].key)).toBe("upcoming");
+    expect(getJobHeadline(job)).toBe("Review your outline");
+    expect(getJobSupportCopy(job)).toContain("Review it");
+  });
+
   it("provides a placeholder headline before the first poll returns", () => {
     expect(getJobHeadline(null)).toBe("Preparing your lesson job");
   });

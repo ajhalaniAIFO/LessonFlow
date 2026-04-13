@@ -8,12 +8,16 @@ import * as quizGenerator from "@/lib/server/lessons/quiz-generator";
 import * as sceneGenerator from "@/lib/server/lessons/scene-generator";
 import {
   createLessonJob,
+  createOutlineGenerationJob,
   createLessonRegenerationJob,
   getLessonById,
   getLessonJob,
   parseCreateLessonRequest,
+  processLessonOutlineJob,
   processLessonJob,
+  processLessonSceneJob,
   regenerateLessonScene,
+  updateLessonOutline,
 } from "@/lib/server/lessons/lesson-service";
 
 function createTempDbPath() {
@@ -284,6 +288,83 @@ describe("lesson-service", () => {
     expect(updatedLesson?.scenes[0]?.title).toBe("Refreshed lesson scene");
     expect(updatedLesson?.scenes[1]?.type).toBe("quiz");
     expect(sceneSpy).toHaveBeenCalledTimes(1);
+
+    outlineSpy.mockRestore();
+    sceneSpy.mockRestore();
+    quizSpy.mockRestore();
+  });
+
+  it("pauses after outline generation for review and then continues with reviewed outline", async () => {
+    const outlineSpy = vi.spyOn(outlineGenerator, "generateLessonOutline").mockResolvedValue({
+      title: "Thermodynamics Basics",
+      outline: [
+        { title: "First pass title", goal: "Original goal", sceneType: "lesson" },
+        { title: "Checkpoint quiz", goal: "Review understanding", sceneType: "quiz" },
+      ],
+    });
+    const sceneSpy = vi.spyOn(sceneGenerator, "generateLessonScene").mockResolvedValue({
+      title: "Edited lesson scene",
+      summary: "A reviewed outline should drive the next generation step.",
+      sections: [{ heading: "Edited heading", body: "The scene reflects reviewed outline edits." }],
+      keyTakeaways: ["Outline review changes downstream generation"],
+    });
+    const quizSpy = vi.spyOn(quizGenerator, "generateQuizScene").mockResolvedValue({
+      title: "Checkpoint quiz",
+      questions: [
+        {
+          id: "quiz-q3",
+          prompt: "What changed after outline review?",
+          type: "multiple_choice",
+          options: ["The stored outline", "The database engine", "The app port", "Nothing"],
+          correctIndex: 0,
+          explanation: "The reviewed outline feeds scene generation.",
+        },
+      ],
+    });
+
+    const created = await createLessonJob(
+      {
+        prompt: "Teach me thermodynamics",
+        language: "en",
+      },
+      { autoProcess: false },
+    );
+
+    await processLessonOutlineJob(created.jobId);
+    const outlineJob = await getLessonJob(created.jobId);
+    const lessonAfterOutline = await getLessonById(created.lessonId);
+
+    expect(outlineJob?.status).toBe("awaiting_review");
+    expect(lessonAfterOutline?.status).toBe("draft");
+    expect(lessonAfterOutline?.scenes).toHaveLength(0);
+    expect(lessonAfterOutline?.outline[0]?.title).toBe("First pass title");
+
+    await updateLessonOutline(created.lessonId, {
+      lessonTitle: "Thermodynamics Review Pass",
+      items: [
+        {
+          id: lessonAfterOutline!.outline[0]!.id,
+          title: "Reviewed title",
+          goal: "Reviewed goal",
+        },
+        {
+          id: lessonAfterOutline!.outline[1]!.id,
+          title: "Checkpoint quiz",
+          goal: "Review understanding",
+        },
+      ],
+    });
+
+    const continued = await createOutlineGenerationJob(created.lessonId, { autoProcess: false });
+    await processLessonSceneJob(continued.jobId);
+
+    const finishedLesson = await getLessonById(created.lessonId);
+    const continuedJob = await getLessonJob(continued.jobId);
+
+    expect(finishedLesson?.title).toBe("Thermodynamics Review Pass");
+    expect(finishedLesson?.scenes).toHaveLength(2);
+    expect(finishedLesson?.outline[0]?.title).toBe("Reviewed title");
+    expect(continuedJob?.status).toBe("ready");
 
     outlineSpy.mockRestore();
     sceneSpy.mockRestore();
