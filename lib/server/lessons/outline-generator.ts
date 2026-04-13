@@ -3,6 +3,7 @@ import path from "node:path";
 import { getProvider } from "@/lib/server/llm/provider-registry";
 import type { LLMProvider } from "@/lib/server/llm/types";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
+import { buildSourceContext } from "@/lib/server/uploads/source-intelligence";
 import { AppError } from "@/lib/server/utils/errors";
 import { outlineResponseSchema, type OutlineResponse } from "@/lib/server/validation/outline-schema";
 
@@ -18,6 +19,11 @@ export async function generateLessonOutline(
   const settings = await getModelSettings();
   const provider = providerOverride ?? getProvider(settings.provider);
   const template = await loadPromptTemplate();
+  const sourceContext = buildSourceContext({
+    sourceText: input.sourceText,
+    lessonPrompt: input.prompt,
+    maxExcerptLength: 900,
+  });
 
   const prompt = `${template}
 
@@ -35,7 +41,10 @@ Learning request:
 ${input.prompt}
 
 Source material:
-${input.sourceText?.trim() ? input.sourceText : "No uploaded source material provided."}`;
+${sourceContext?.excerpt ?? "No uploaded source material provided."}
+
+Source highlights:
+${sourceContext?.highlights.join(", ") || "No source highlights available."}`;
 
   let parsed: unknown;
   try {

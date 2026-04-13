@@ -8,3 +8,8 @@ export type UploadRecord = {
   storagePath?: string;
   errorMessage?: string;
 };
+
+export type SourceContext = {
+  excerpt: string;
+  highlights: string[];
+};

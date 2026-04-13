@@ -149,6 +149,17 @@ export default async function LessonPage({
                         </ul>
                       </>
                     ) : null}
+                    {activeScene.content.sourceContext ? (
+                      <div className="status-box">
+                        <p className="status-title">Source grounding</p>
+                        <p className="status-copy">{activeScene.content.sourceContext.excerpt}</p>
+                        {activeScene.content.sourceContext.highlights.length ? (
+                          <p className="status-copy">
+                            Highlights: {activeScene.content.sourceContext.highlights.join(", ")}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </>
                 ) : activeScene.content && "questions" in activeScene.content ? (
                   <QuizSceneClient

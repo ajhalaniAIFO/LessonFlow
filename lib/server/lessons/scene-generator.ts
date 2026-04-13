@@ -3,6 +3,7 @@ import path from "node:path";
 import { getProvider } from "@/lib/server/llm/provider-registry";
 import type { LLMProvider } from "@/lib/server/llm/types";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
+import type { SourceContext } from "@/types/upload";
 import { AppError } from "@/lib/server/utils/errors";
 import {
   lessonSceneResponseSchema,
@@ -21,6 +22,7 @@ export async function generateLessonScene(
     outlineTitle: string;
     outlineGoal?: string;
     language: string;
+    sourceContext?: SourceContext;
   },
   providerOverride?: LLMProvider,
 ): Promise<LessonSceneResponse> {
@@ -49,7 +51,13 @@ ${input.lessonPrompt}
 
 Current outline item:
 - title: ${input.outlineTitle}
-- goal: ${input.outlineGoal ?? "Introduce the concept clearly."}`;
+- goal: ${input.outlineGoal ?? "Introduce the concept clearly."}
+
+Relevant source excerpt:
+${input.sourceContext?.excerpt ?? "No uploaded source excerpt provided."}
+
+Source highlights:
+${input.sourceContext?.highlights.join(", ") || "No source highlights available."}`;
 
   let parsed: unknown;
   try {

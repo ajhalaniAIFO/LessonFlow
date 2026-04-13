@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { resetDatabase } from "@/lib/db/client";
+import { buildSourceContext } from "@/lib/server/uploads/source-intelligence";
 import { createUpload, getUploadById } from "@/lib/server/uploads/upload-service";
 
 function createTempDbPath() {
@@ -41,5 +42,26 @@ describe("upload-service", () => {
     const upload = await createUpload(file);
 
     expect(upload.extractedText).toBe("Heat and work matter.");
+  });
+
+  it("can derive a relevant source excerpt from extracted upload text", async () => {
+    const file = new File(
+      [
+        "Thermodynamics studies energy and work.\n\nHeat transfer includes conduction, convection, and radiation.\n\nEntropy helps describe directionality.",
+      ],
+      "notes.txt",
+      {
+        type: "text/plain",
+      },
+    );
+
+    const upload = await createUpload(file);
+    const context = buildSourceContext({
+      lessonPrompt: "Teach me heat transfer.",
+      outlineTitle: "Heat transfer",
+      sourceText: upload.extractedText,
+    });
+
+    expect(context?.excerpt).toContain("Heat transfer includes conduction");
   });
 });
