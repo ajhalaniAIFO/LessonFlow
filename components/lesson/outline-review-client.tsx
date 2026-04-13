@@ -266,9 +266,28 @@ export function OutlineReviewClient({ lesson }: Props) {
                     }
                   />
                 </div>
-                <p className="status-copy">
-                  {item.sceneType === "lesson" ? "Teaching scene" : "Quiz scene"}
-                </p>
+                <div className="field">
+                  <label htmlFor={`outline-scene-type-${item.id}`}>Scene type</label>
+                  <select
+                    id={`outline-scene-type-${item.id}`}
+                    value={item.sceneType}
+                    onChange={(event) =>
+                      setItems((current) =>
+                        current.map((entry) =>
+                          entry.id === item.id
+                            ? {
+                                ...entry,
+                                sceneType: event.target.value as "lesson" | "quiz",
+                              }
+                            : entry,
+                        ),
+                      )
+                    }
+                  >
+                    <option value="lesson">Teaching scene</option>
+                    <option value="quiz">Quiz scene</option>
+                  </select>
+                </div>
               </div>
             </div>
           ))}

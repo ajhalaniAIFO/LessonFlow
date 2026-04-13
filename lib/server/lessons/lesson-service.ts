@@ -389,7 +389,7 @@ export async function updateLessonOutline(lessonId: string, input: OutlineReview
 
   const updateOutline = db.prepare(
     `UPDATE outline_items
-     SET title = ?, goal = ?, display_order = ?, updated_at = ?
+     SET title = ?, goal = ?, scene_type = ?, display_order = ?, updated_at = ?
      WHERE id = ? AND lesson_id = ?`,
   );
   const insertOutline = db.prepare(
@@ -414,13 +414,13 @@ export async function updateLessonOutline(lessonId: string, input: OutlineReview
 
     const nextOrder = item.order && item.order > 0 ? item.order : index + 1;
     const nextGoal = item.goal?.trim() || null;
+    const nextSceneType = item.sceneType ?? "lesson";
 
     if (storedItemIds.has(item.id)) {
-      updateOutline.run(nextTitle, nextGoal, nextOrder, now, item.id, lessonId);
+      updateOutline.run(nextTitle, nextGoal, nextSceneType, nextOrder, now, item.id, lessonId);
       return;
     }
 
-    const nextSceneType = item.sceneType ?? "lesson";
     insertOutline.run(randomUUID(), lessonId, nextTitle, nextGoal, nextSceneType, nextOrder, now, now);
   });
 
