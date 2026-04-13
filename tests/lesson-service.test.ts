@@ -435,4 +435,60 @@ describe("lesson-service", () => {
 
     outlineSpy.mockRestore();
   });
+
+  it("allows reviewed outline items to be removed and added", async () => {
+    const outlineSpy = vi.spyOn(outlineGenerator, "generateLessonOutline").mockResolvedValue({
+      title: "Thermodynamics Basics",
+      outline: [
+        { title: "Intro", goal: "Start here", sceneType: "lesson" },
+        { title: "Middle", goal: "Build depth", sceneType: "lesson" },
+        { title: "Quiz", goal: "Check understanding", sceneType: "quiz" },
+      ],
+    });
+
+    const created = await createLessonJob(
+      {
+        prompt: "Teach me thermodynamics",
+        language: "en",
+      },
+      { autoProcess: false },
+    );
+
+    await processLessonOutlineJob(created.jobId);
+    const lesson = await getLessonById(created.lessonId);
+
+    await updateLessonOutline(created.lessonId, {
+      lessonTitle: "Thermodynamics Customized",
+      items: [
+        {
+          id: lesson!.outline[0]!.id,
+          title: "Intro",
+          goal: "Start here",
+          order: 1,
+          sceneType: "lesson",
+        },
+        {
+          id: "draft-new-lesson",
+          title: "Applied examples",
+          goal: "Ground the topic in practical examples",
+          order: 2,
+          sceneType: "lesson",
+        },
+        {
+          id: lesson!.outline[2]!.id,
+          title: "Quiz",
+          goal: "Check understanding",
+          order: 3,
+          sceneType: "quiz",
+        },
+      ],
+    });
+
+    const updated = await getLessonById(created.lessonId);
+
+    expect(updated?.outline.map((item) => item.title)).toEqual(["Intro", "Applied examples", "Quiz"]);
+    expect(updated?.outline.map((item) => item.sceneType)).toEqual(["lesson", "lesson", "quiz"]);
+
+    outlineSpy.mockRestore();
+  });
 });

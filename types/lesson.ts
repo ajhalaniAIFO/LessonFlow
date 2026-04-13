@@ -38,6 +38,7 @@ export type OutlineReviewUpdate = {
     title: string;
     goal?: string;
     order?: number;
+    sceneType?: SceneType;
   }>;
 };
 

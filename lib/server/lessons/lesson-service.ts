@@ -370,8 +370,17 @@ export async function updateLessonOutline(lessonId: string, input: OutlineReview
     .prepare("SELECT * FROM outline_items WHERE lesson_id = ? ORDER BY display_order ASC")
     .all(lessonId) as OutlineRow[];
   const storedItemIds = new Set(storedItems.map((item) => item.id));
+  const incomingExistingIds = new Set(
+    input.items
+      .map((item) => item.id)
+      .filter((id) => storedItemIds.has(id)),
+  );
 
-  if (input.items.some((item) => !storedItemIds.has(item.id))) {
+  if (
+    input.items.some(
+      (item) => !storedItemIds.has(item.id) && !item.id.startsWith("draft-"),
+    )
+  ) {
     throw new AppError("INVALID_REQUEST", "Outline item mismatch.");
   }
 
@@ -383,6 +392,19 @@ export async function updateLessonOutline(lessonId: string, input: OutlineReview
      SET title = ?, goal = ?, display_order = ?, updated_at = ?
      WHERE id = ? AND lesson_id = ?`,
   );
+  const insertOutline = db.prepare(
+    `INSERT INTO outline_items (id, lesson_id, title, goal, scene_type, display_order, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  const deleteOutline = db.prepare(
+    "DELETE FROM outline_items WHERE id = ? AND lesson_id = ?",
+  );
+
+  storedItems.forEach((item) => {
+    if (!incomingExistingIds.has(item.id)) {
+      deleteOutline.run(item.id, lessonId);
+    }
+  });
 
   input.items.forEach((item, index) => {
     const nextTitle = item.title.trim();
@@ -391,7 +413,15 @@ export async function updateLessonOutline(lessonId: string, input: OutlineReview
     }
 
     const nextOrder = item.order && item.order > 0 ? item.order : index + 1;
-    updateOutline.run(nextTitle, item.goal?.trim() || null, nextOrder, now, item.id, lessonId);
+    const nextGoal = item.goal?.trim() || null;
+
+    if (storedItemIds.has(item.id)) {
+      updateOutline.run(nextTitle, nextGoal, nextOrder, now, item.id, lessonId);
+      return;
+    }
+
+    const nextSceneType = item.sceneType ?? "lesson";
+    insertOutline.run(randomUUID(), lessonId, nextTitle, nextGoal, nextSceneType, nextOrder, now, now);
   });
 
   return getLessonById(lessonId);

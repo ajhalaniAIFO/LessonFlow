@@ -1,5 +1,4 @@
 "use client";
-
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { ApiResponse } from "@/types/api";
@@ -54,6 +53,30 @@ export function OutlineReviewClient({ lesson }: Props) {
     });
   }
 
+  function addItem(sceneType: "lesson" | "quiz") {
+    setItems((current) => [
+      ...current,
+      {
+        id: `draft-${crypto.randomUUID()}`,
+        title: sceneType === "lesson" ? "New lesson section" : "New quiz checkpoint",
+        goal: "",
+        sceneType,
+        order: current.length + 1,
+      },
+    ]);
+  }
+
+  function removeItem(itemId: string) {
+    setItems((current) =>
+      current
+        .filter((item) => item.id !== itemId)
+        .map((item, index) => ({
+          ...item,
+          order: index + 1,
+        })),
+    );
+  }
+
   async function saveOutline() {
     setIsSaving(true);
     setStatus(null);
@@ -65,6 +88,7 @@ export function OutlineReviewClient({ lesson }: Props) {
         title: item.title,
         goal: item.goal || undefined,
         order: item.order,
+        sceneType: item.sceneType,
       })),
     };
 
@@ -165,6 +189,24 @@ export function OutlineReviewClient({ lesson }: Props) {
 
       <section className="card">
         <h2>Outline items</h2>
+        <div className="button-row" style={{ marginBottom: "16px" }}>
+          <button
+            className="button secondary"
+            type="button"
+            disabled={isSaving || isContinuing}
+            onClick={() => addItem("lesson")}
+          >
+            Add lesson section
+          </button>
+          <button
+            className="button secondary"
+            type="button"
+            disabled={isSaving || isContinuing}
+            onClick={() => addItem("quiz")}
+          >
+            Add quiz checkpoint
+          </button>
+        </div>
         <div className="outline-review-list">
           {items.map((item, index) => (
             <div key={item.id} className="outline-review-item">
@@ -186,6 +228,14 @@ export function OutlineReviewClient({ lesson }: Props) {
                     onClick={() => moveItem(item.id, "down")}
                   >
                     Move down
+                  </button>
+                  <button
+                    className="button secondary"
+                    type="button"
+                    disabled={items.length <= 1 || isSaving || isContinuing}
+                    onClick={() => removeItem(item.id)}
+                  >
+                    Remove
                   </button>
                 </div>
                 <div className="field">
