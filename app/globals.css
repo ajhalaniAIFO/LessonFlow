@@ -320,6 +320,30 @@ select {
   margin-top: 16px;
 }
 
+.runtime-guidance-list {
+  display: grid;
+  gap: 14px;
+}
+
+.runtime-guidance-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(248, 250, 255, 0.88);
+}
+
+.runtime-guidance-card.active {
+  border-color: rgba(32, 82, 214, 0.32);
+  background: rgba(231, 239, 255, 0.62);
+}
+
+.runtime-guidance-title {
+  margin: 0;
+  font-weight: 700;
+}
+
 @media (min-width: 760px) {
   .outline-preview-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
