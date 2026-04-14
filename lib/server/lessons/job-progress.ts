@@ -29,6 +29,75 @@ export const generationStages: GenerationStageDescriptor[] = [
   },
 ];
 
+export type JobTelemetryItem = {
+  key: "outline" | "scenes" | "quizzes" | "total";
+  label: string;
+  value: string;
+  detail?: string;
+};
+
+export function formatTelemetryDuration(milliseconds: number) {
+  if (milliseconds < 1000) {
+    return `${milliseconds} ms`;
+  }
+
+  if (milliseconds < 60_000) {
+    return `${(milliseconds / 1000).toFixed(1)} s`;
+  }
+
+  return `${(milliseconds / 60_000).toFixed(1)} min`;
+}
+
+export function getJobTelemetryItems(job: LessonJob | null): JobTelemetryItem[] {
+  if (!job?.telemetry) {
+    return [];
+  }
+
+  const items: JobTelemetryItem[] = [];
+
+  if (typeof job.telemetry.outlineMs === "number") {
+    items.push({
+      key: "outline",
+      label: "Outline",
+      value: formatTelemetryDuration(job.telemetry.outlineMs),
+    });
+  }
+
+  if (typeof job.telemetry.sceneGenerationMs === "number") {
+    items.push({
+      key: "scenes",
+      label: "Scenes",
+      value: formatTelemetryDuration(job.telemetry.sceneGenerationMs),
+      detail:
+        typeof job.telemetry.lessonSceneCount === "number"
+          ? `${job.telemetry.lessonSceneCount} lesson scene${job.telemetry.lessonSceneCount === 1 ? "" : "s"}`
+          : undefined,
+    });
+  }
+
+  if (typeof job.telemetry.quizGenerationMs === "number") {
+    items.push({
+      key: "quizzes",
+      label: "Quizzes",
+      value: formatTelemetryDuration(job.telemetry.quizGenerationMs),
+      detail:
+        typeof job.telemetry.quizSceneCount === "number"
+          ? `${job.telemetry.quizSceneCount} quiz scene${job.telemetry.quizSceneCount === 1 ? "" : "s"}`
+          : undefined,
+    });
+  }
+
+  if (typeof job.telemetry.totalMs === "number") {
+    items.push({
+      key: "total",
+      label: "Total observed",
+      value: formatTelemetryDuration(job.telemetry.totalMs),
+    });
+  }
+
+  return items;
+}
+
 export function getStageState(job: LessonJob | null, stageKey: GenerationStageDescriptor["key"]) {
   if (!job) {
     return "upcoming" as const;

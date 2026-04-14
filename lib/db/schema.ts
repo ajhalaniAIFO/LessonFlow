@@ -51,6 +51,7 @@ export const LESSON_JOBS_TABLE_SQL = `
     progress INTEGER NOT NULL,
     message TEXT,
     error_message TEXT,
+    telemetry_json TEXT,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE CASCADE

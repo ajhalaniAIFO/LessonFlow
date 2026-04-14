@@ -8,6 +8,15 @@ export type LessonJobStatus =
   | "ready"
   | "error";
 
+export type LessonJobTelemetry = {
+  outlineMs?: number;
+  sceneGenerationMs?: number;
+  quizGenerationMs?: number;
+  totalMs?: number;
+  lessonSceneCount?: number;
+  quizSceneCount?: number;
+};
+
 export type LessonJob = {
   id: string;
   lessonId: string;
@@ -16,4 +25,5 @@ export type LessonJob = {
   stage: LessonJobStatus;
   message?: string;
   errorMessage?: string;
+  telemetry?: LessonJobTelemetry;
 };

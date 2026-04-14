@@ -247,6 +247,37 @@ select {
   color: var(--muted);
 }
 
+.telemetry-list {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+}
+
+.telemetry-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.telemetry-item dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.telemetry-item dd {
+  margin: 0;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  text-align: right;
+}
+
+.telemetry-item dd span {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
 .source-trace-box {
   gap: 10px;
 }

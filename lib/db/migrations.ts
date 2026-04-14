@@ -55,6 +55,15 @@ export function runMigrations(db: Database.Database) {
     db.exec("ALTER TABLE lessons ADD COLUMN lesson_format TEXT NOT NULL DEFAULT 'standard';");
   }
 
+  const lessonJobColumns = db
+    .prepare("PRAGMA table_info(lesson_jobs)")
+    .all() as Array<{ name: string }>;
+  const hasTelemetryJson = lessonJobColumns.some((column) => column.name === "telemetry_json");
+
+  if (!hasTelemetryJson) {
+    db.exec("ALTER TABLE lesson_jobs ADD COLUMN telemetry_json TEXT;");
+  }
+
   const chatMessageColumns = db
     .prepare("PRAGMA table_info(chat_messages)")
     .all() as Array<{ name: string }>;
