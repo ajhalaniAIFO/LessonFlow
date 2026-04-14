@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { SettingsForm } from "@/components/settings/model-settings-form";
+import { getRuntimeRecommendation } from "@/lib/runtime/runtime-recommendations";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const settings = await getModelSettings();
+  const balancedStandardRecommendation = getRuntimeRecommendation("balanced", "standard");
+  const providerTip = balancedStandardRecommendation.providerTips[settings.provider];
 
   return (
     <main className="page-shell">
@@ -41,25 +44,30 @@ export default async function SettingsPage() {
         </article>
 
         <aside className="card">
-          <h3>Quick guidance</h3>
+          <h3>Recommendation hints</h3>
+          <p className="status-copy">{balancedStandardRecommendation.summary}</p>
           <ul className="meta-list">
             <li>
-              Default Ollama URL:{" "}
-              <span className="code-inline">http://127.0.0.1:11434</span>
+              Recommended URL for this provider:{" "}
+              <span className="code-inline">{providerTip.recommendedUrl}</span>
             </li>
             <li>
-              Example OpenAI-compatible URL:{" "}
-              <span className="code-inline">http://127.0.0.1:8000/v1</span>
+              Recommended example models:{" "}
+              {providerTip.exampleModels.map((model, index) => (
+                <span key={model}>
+                  {index > 0 ? ", " : ""}
+                  <span className="code-inline">{model}</span>
+                </span>
+              ))}
             </li>
             <li>
-              Example models:{" "}
-              <span className="code-inline">qwen2.5:7b-instruct</span> or{" "}
-              <span className="code-inline">google/gemma-3-4b-it</span>
+              Workload class:{" "}
+              <span className="code-inline">{balancedStandardRecommendation.workloadClass}</span>
             </li>
             <li>
-              If model discovery returns nothing, you can still type the model name manually.
+              {providerTip.hint}
             </li>
-            <li>No cloud API key is required for this milestone.</li>
+            <li>No cloud API key is required for this setup.</li>
           </ul>
         </aside>
       </section>
