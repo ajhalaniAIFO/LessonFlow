@@ -146,3 +146,19 @@ export const INTERACTIVE_BLOCK_PROGRESS_TABLE_SQL = `
     UNIQUE (lesson_id, scene_id, block_kind)
   );
 `;
+
+export const RUNTIME_BENCHMARKS_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS runtime_benchmarks (
+    id TEXT PRIMARY KEY,
+    provider TEXT NOT NULL,
+    model TEXT NOT NULL,
+    base_url TEXT NOT NULL,
+    benchmark_kind TEXT NOT NULL,
+    status TEXT NOT NULL,
+    duration_ms INTEGER,
+    output_chars INTEGER,
+    output_preview TEXT,
+    error_message TEXT,
+    created_at INTEGER NOT NULL
+  );
+`;
