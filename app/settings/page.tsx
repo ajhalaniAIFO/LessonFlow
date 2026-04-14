@@ -3,6 +3,7 @@ import { SettingsForm } from "@/components/settings/model-settings-form";
 import { RuntimeBenchmarkCard } from "@/components/settings/runtime-benchmark-card";
 import { RuntimeComparisonCard } from "@/components/settings/runtime-comparison-card";
 import { getHardwareProfile } from "@/lib/runtime/hardware-profile";
+import { getRecommendedRuntimeSetup } from "@/lib/runtime/runtime-comparison";
 import { getRuntimeBenchmark } from "@/lib/runtime/runtime-benchmarking";
 import { getHardwareAwareRuntimeRecommendation } from "@/lib/runtime/runtime-recommendations";
 import { getRuntimeComparison, getRuntimeUsageDashboard } from "@/lib/server/lessons/lesson-service";
@@ -21,6 +22,7 @@ export default async function SettingsPage() {
     hardwareProfile,
   );
   const benchmark = getRuntimeBenchmark(settings, runtimeDashboard);
+  const recommendedSetup = getRecommendedRuntimeSetup(runtimeComparison);
   const providerTip = balancedStandardRecommendation.providerTips[settings.provider];
 
   return (
@@ -53,7 +55,17 @@ export default async function SettingsPage() {
       <section className="card-grid">
         <article className="card">
           <h2>Model settings</h2>
-          <SettingsForm initialSettings={settings} />
+          <SettingsForm
+            initialSettings={settings}
+            recommendedSettings={
+              recommendedSetup
+                ? {
+                    provider: recommendedSetup.provider,
+                    model: recommendedSetup.model,
+                  }
+                : undefined
+            }
+          />
         </article>
 
         <aside className="card">
