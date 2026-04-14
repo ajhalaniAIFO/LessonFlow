@@ -57,3 +57,8 @@ export type RuntimeComparisonItem = {
   fastestTotalMs?: number;
   slowestTotalMs?: number;
 };
+
+export type RuntimeTrendSample = {
+  updatedAt: number;
+  totalMs: number;
+};
