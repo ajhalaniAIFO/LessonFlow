@@ -29,6 +29,22 @@ export const generationStages: GenerationStageDescriptor[] = [
   },
 ];
 
+export function formatTelemetryDuration(milliseconds?: number) {
+  if (typeof milliseconds !== "number") {
+    return "n/a";
+  }
+
+  if (milliseconds < 1000) {
+    return `${milliseconds} ms`;
+  }
+
+  if (milliseconds < 60_000) {
+    return `${(milliseconds / 1000).toFixed(1)} s`;
+  }
+
+  return `${(milliseconds / 60_000).toFixed(1)} min`;
+}
+
 export function getStageState(job: LessonJob | null, stageKey: GenerationStageDescriptor["key"]) {
   if (!job) {
     return "upcoming" as const;

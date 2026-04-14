@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { LessonLibrary } from "@/components/home/lesson-library";
 import { LessonRequestForm } from "@/components/home/lesson-request-form";
-import { listLessons } from "@/lib/server/lessons/lesson-service";
+import { RuntimeUsageDashboardCard } from "@/components/home/runtime-usage-dashboard";
+import { getRuntimeUsageDashboard, listLessons } from "@/lib/server/lessons/lesson-service";
 import { getHardwareProfile } from "@/lib/runtime/hardware-profile";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const lessons = await listLessons();
+  const runtimeDashboard = await getRuntimeUsageDashboard();
   const hardwareProfile = getHardwareProfile();
 
   return (
@@ -72,6 +74,10 @@ export default async function HomePage() {
             <li>Return here and generate your first lesson outline</li>
           </ul>
         </aside>
+      </section>
+
+      <section style={{ marginTop: "24px" }}>
+        <RuntimeUsageDashboardCard dashboard={runtimeDashboard} />
       </section>
 
       <section style={{ marginTop: "24px" }}>

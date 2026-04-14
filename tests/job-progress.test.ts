@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatTelemetryDuration,
   generationStages,
   getJobHeadline,
   getJobSupportCopy,
@@ -73,5 +74,11 @@ describe("job-progress helpers", () => {
 
   it("provides a placeholder headline before the first poll returns", () => {
     expect(getJobHeadline(null)).toBe("Preparing your lesson job");
+  });
+
+  it("formats telemetry durations for display", () => {
+    expect(formatTelemetryDuration()).toBe("n/a");
+    expect(formatTelemetryDuration(420)).toBe("420 ms");
+    expect(formatTelemetryDuration(4200)).toBe("4.2 s");
   });
 });

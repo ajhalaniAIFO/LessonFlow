@@ -10,6 +10,7 @@ import {
   createLessonJob,
   createOutlineGenerationJob,
   createLessonRegenerationJob,
+  getRuntimeUsageDashboard,
   getLessonById,
   getLessonJob,
   parseCreateLessonRequest,
@@ -112,6 +113,12 @@ describe("lesson-service", () => {
     expect(lesson?.scenes[2]?.type).toBe("quiz");
     expect(sceneSpy).toHaveBeenCalledTimes(2);
     expect(job?.status).toBe("ready");
+    expect(job?.telemetry?.outlineMs).toBeTypeOf("number");
+    expect(job?.telemetry?.sceneGenerationMs).toBeTypeOf("number");
+    expect(job?.telemetry?.quizGenerationMs).toBeTypeOf("number");
+    expect(job?.telemetry?.totalMs).toBeTypeOf("number");
+    expect(job?.telemetry?.lessonSceneCount).toBe(2);
+    expect(job?.telemetry?.quizSceneCount).toBe(1);
     spy.mockRestore();
     sceneSpy.mockRestore();
     quizSpy.mockRestore();
@@ -285,6 +292,7 @@ describe("lesson-service", () => {
     const reviewJob = await getLessonJob(regeneration.jobId);
 
     expect(reviewJob?.status).toBe("awaiting_review");
+    expect(reviewJob?.telemetry?.outlineMs).toBeTypeOf("number");
     expect(reviewLesson?.status).toBe("draft");
     expect(reviewLesson?.scenes).toHaveLength(0);
 
@@ -439,10 +447,61 @@ describe("lesson-service", () => {
     expect(finishedLesson?.scenes).toHaveLength(2);
     expect(finishedLesson?.outline[0]?.title).toBe("Reviewed title");
     expect(continuedJob?.status).toBe("ready");
+    expect(continuedJob?.telemetry?.sceneGenerationMs).toBeTypeOf("number");
+    expect(continuedJob?.telemetry?.quizGenerationMs).toBeTypeOf("number");
+    expect(continuedJob?.telemetry?.lessonSceneCount).toBe(1);
+    expect(continuedJob?.telemetry?.quizSceneCount).toBe(1);
 
     outlineSpy.mockRestore();
     sceneSpy.mockRestore();
     quizSpy.mockRestore();
+  });
+
+  it("builds runtime usage dashboard data from recent jobs", async () => {
+    vi.spyOn(outlineGenerator, "generateLessonOutline").mockResolvedValue({
+      title: "Telemetry Lesson",
+      outline: [
+        { title: "Lesson scene", goal: "Teach something", sceneType: "lesson" },
+        { title: "Quiz scene", goal: "Check understanding", sceneType: "quiz" },
+      ],
+    });
+    vi.spyOn(sceneGenerator, "generateLessonScene").mockResolvedValue({
+      title: "Lesson scene",
+      summary: "A short scene summary.",
+      sections: [{ heading: "Idea", body: "Explain the idea." }],
+      keyTakeaways: ["Takeaway"],
+    });
+    vi.spyOn(quizGenerator, "generateQuizScene").mockResolvedValue({
+      title: "Quiz scene",
+      questions: [
+        {
+          id: "quiz-q5",
+          prompt: "What happened?",
+          type: "multiple_choice",
+          options: ["A lesson was generated", "Nothing", "The app closed", "The DB reset"],
+          correctIndex: 0,
+          explanation: "The lesson pipeline completed successfully.",
+        },
+      ],
+    });
+
+    const created = await createLessonJob(
+      {
+        prompt: "Teach me telemetry",
+        language: "en",
+      },
+      { autoProcess: false },
+    );
+    await processLessonJob(created.jobId);
+
+    const dashboard = await getRuntimeUsageDashboard();
+
+    expect(dashboard.recentJobs.length).toBeGreaterThan(0);
+    expect(dashboard.completedJobs).toBe(1);
+    expect(dashboard.averageTotalMs).toBeTypeOf("number");
+    expect(dashboard.totalLessonScenes).toBe(1);
+    expect(dashboard.totalQuizScenes).toBe(1);
+    expect(dashboard.recentJobs[0]?.telemetry?.totalMs).toBeTypeOf("number");
   });
 
   it("stores reviewed outline order changes", async () => {

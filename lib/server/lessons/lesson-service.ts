@@ -17,7 +17,13 @@ import type {
   TeachingStyle,
   LessonFormat,
 } from "@/types/lesson";
-import type { LessonJob, LessonJobStatus } from "@/types/job";
+import type {
+  LessonJob,
+  LessonJobStatus,
+  LessonJobTelemetry,
+  RuntimeUsageDashboard,
+  RuntimeUsageJobInsight,
+} from "@/types/job";
 import type { InteractiveBlockKind, InteractiveBlockProgress, Scene } from "@/types/scene";
 
 type LessonRow = {
@@ -55,6 +61,9 @@ type JobRow = {
   progress: number;
   message: string | null;
   error_message: string | null;
+  telemetry_json: string | null;
+  updated_at?: number;
+  lesson_title?: string;
 };
 
 type SceneRow = {
@@ -147,7 +156,53 @@ function mapJob(row: JobRow): LessonJob {
     progress: row.progress,
     message: row.message ?? undefined,
     errorMessage: row.error_message ?? undefined,
+    telemetry: row.telemetry_json ? (JSON.parse(row.telemetry_json) as LessonJobTelemetry) : undefined,
   };
+}
+
+function readTelemetry(row: JobRow) {
+  return row.telemetry_json ? (JSON.parse(row.telemetry_json) as LessonJobTelemetry) : undefined;
+}
+
+function mergeTelemetry(
+  current: LessonJobTelemetry | undefined,
+  updates: Partial<LessonJobTelemetry>,
+): LessonJobTelemetry {
+  return {
+    ...(current ?? {}),
+    ...updates,
+  };
+}
+
+function updateJobRecord(
+  updateJob: { run: (params: Record<string, unknown>) => unknown },
+  jobId: string,
+  currentTelemetry: LessonJobTelemetry | undefined,
+  payload: {
+    status: LessonJobStatus;
+    stage: LessonJobStatus;
+    progress: number;
+    message: string;
+    errorMessage: string | null;
+    telemetry?: Partial<LessonJobTelemetry>;
+  },
+) {
+  const nextTelemetry = payload.telemetry
+    ? mergeTelemetry(currentTelemetry, payload.telemetry)
+    : currentTelemetry;
+
+  updateJob.run({
+    id: jobId,
+    status: payload.status,
+    stage: payload.stage,
+    progress: payload.progress,
+    message: payload.message,
+    error_message: payload.errorMessage,
+    telemetry_json: nextTelemetry ? JSON.stringify(nextTelemetry) : null,
+    updated_at: Date.now(),
+  });
+
+  return nextTelemetry;
 }
 
 export function parseCreateLessonRequest(input: unknown): CreateLessonRequest {
@@ -229,8 +284,8 @@ export async function createLessonJob(
   });
 
   db.prepare(
-    `INSERT INTO lesson_jobs (id, lesson_id, status, stage, progress, message, error_message, created_at, updated_at)
-     VALUES (@id, @lesson_id, @status, @stage, @progress, @message, @error_message, @created_at, @updated_at)`,
+    `INSERT INTO lesson_jobs (id, lesson_id, status, stage, progress, message, error_message, telemetry_json, created_at, updated_at)
+     VALUES (@id, @lesson_id, @status, @stage, @progress, @message, @error_message, @telemetry_json, @created_at, @updated_at)`,
   ).run({
     id: jobId,
     lesson_id: lessonId,
@@ -239,6 +294,7 @@ export async function createLessonJob(
     progress: 0,
     message: "Queued for outline generation",
     error_message: null,
+    telemetry_json: null,
     created_at: now,
     updated_at: now,
   });
@@ -268,8 +324,8 @@ export async function createOutlineGenerationJob(
   const now = Date.now();
 
   db.prepare(
-    `INSERT INTO lesson_jobs (id, lesson_id, status, stage, progress, message, error_message, created_at, updated_at)
-     VALUES (@id, @lesson_id, @status, @stage, @progress, @message, @error_message, @created_at, @updated_at)`,
+    `INSERT INTO lesson_jobs (id, lesson_id, status, stage, progress, message, error_message, telemetry_json, created_at, updated_at)
+     VALUES (@id, @lesson_id, @status, @stage, @progress, @message, @error_message, @telemetry_json, @created_at, @updated_at)`,
   ).run({
     id: jobId,
     lesson_id: lessonId,
@@ -278,6 +334,7 @@ export async function createOutlineGenerationJob(
     progress: 0,
     message: "Queued for scene generation",
     error_message: null,
+    telemetry_json: null,
     created_at: now,
     updated_at: now,
   });
@@ -313,8 +370,8 @@ export async function createLessonRegenerationJob(
   const now = Date.now();
 
   db.prepare(
-    `INSERT INTO lesson_jobs (id, lesson_id, status, stage, progress, message, error_message, created_at, updated_at)
-     VALUES (@id, @lesson_id, @status, @stage, @progress, @message, @error_message, @created_at, @updated_at)`,
+    `INSERT INTO lesson_jobs (id, lesson_id, status, stage, progress, message, error_message, telemetry_json, created_at, updated_at)
+     VALUES (@id, @lesson_id, @status, @stage, @progress, @message, @error_message, @telemetry_json, @created_at, @updated_at)`,
   ).run({
     id: jobId,
     lesson_id: lessonId,
@@ -323,6 +380,7 @@ export async function createLessonRegenerationJob(
     progress: 0,
     message: "Queued for lesson regeneration",
     error_message: null,
+    telemetry_json: null,
     created_at: now,
     updated_at: now,
   });
@@ -506,7 +564,8 @@ export async function updateLessonOutline(lessonId: string, input: OutlineReview
 
     const nextOrder = item.order && item.order > 0 ? item.order : index + 1;
     const nextGoal = item.goal?.trim() || null;
-    const nextSceneType = item.sceneType ?? "lesson";
+    const existingItem = storedItems.find((storedItem) => storedItem.id === item.id);
+    const nextSceneType = item.sceneType ?? existingItem?.scene_type ?? "lesson";
 
     if (storedItemIds.has(item.id)) {
       updateOutline.run(nextTitle, nextGoal, nextSceneType, nextOrder, now, item.id, lessonId);
@@ -539,7 +598,7 @@ export async function processLessonOutlineJob(jobId: string) {
 
   const updateJob = db.prepare(
     `UPDATE lesson_jobs
-     SET status = @status, stage = @stage, progress = @progress, message = @message, error_message = @error_message, updated_at = @updated_at
+     SET status = @status, stage = @stage, progress = @progress, message = @message, error_message = @error_message, telemetry_json = @telemetry_json, updated_at = @updated_at
      WHERE id = @id`,
   );
   const updateLesson = db.prepare(
@@ -552,16 +611,17 @@ export async function processLessonOutlineJob(jobId: string) {
      VALUES (@id, @lesson_id, @title, @goal, @scene_type, @display_order, @created_at, @updated_at)`,
   );
 
+  let telemetry = readTelemetry(job);
+
   try {
-    updateJob.run({
-      id: jobId,
+    telemetry = updateJobRecord(updateJob, jobId, telemetry, {
       status: "generating_outline",
       stage: "generating_outline",
       progress: 30,
       message: "Generating lesson outline",
-      error_message: null,
-      updated_at: Date.now(),
+      errorMessage: null,
     });
+    const outlineStartedAt = Date.now();
 
     const outline = await generateLessonOutline({
       prompt: lesson.prompt ?? "Teach me the key ideas from the uploaded material.",
@@ -599,14 +659,17 @@ export async function processLessonOutlineJob(jobId: string) {
       updated_at: now,
     });
 
-    updateJob.run({
-      id: jobId,
+    const outlineMs = Date.now() - outlineStartedAt;
+    updateJobRecord(updateJob, jobId, telemetry, {
       status: "awaiting_review",
       stage: "generating_outline",
       progress: 100,
       message: "Outline ready for review",
-      error_message: null,
-      updated_at: now,
+      errorMessage: null,
+      telemetry: {
+        outlineMs,
+        totalMs: outlineMs,
+      },
     });
   } catch (error) {
     const message =
@@ -619,14 +682,12 @@ export async function processLessonOutlineJob(jobId: string) {
       error_message: message,
       updated_at: now,
     });
-    updateJob.run({
-      id: jobId,
+    updateJobRecord(updateJob, jobId, telemetry, {
       status: "error",
       stage: "error",
       progress: 100,
       message: "Outline generation failed",
-      error_message: message,
-      updated_at: now,
+      errorMessage: message,
     });
   }
 }
@@ -659,7 +720,7 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
 
   const updateJob = db.prepare(
     `UPDATE lesson_jobs
-     SET status = @status, stage = @stage, progress = @progress, message = @message, error_message = @error_message, updated_at = @updated_at
+     SET status = @status, stage = @stage, progress = @progress, message = @message, error_message = @error_message, telemetry_json = @telemetry_json, updated_at = @updated_at
      WHERE id = @id`,
   );
   const updateLesson = db.prepare(
@@ -676,20 +737,22 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
      VALUES (@id, @lesson_id, @outline_item_id, @type, @title, @display_order, @status, @content_json, @error_message, @created_at, @updated_at)`,
   );
 
+  let telemetry = readTelemetry(job);
+
   try {
     let lessonTitle = lesson.title;
     let now = Date.now();
+    const jobStartedAt = Date.now();
 
     if (regenerateOutline) {
-      updateJob.run({
-        id: jobId,
+      telemetry = updateJobRecord(updateJob, jobId, telemetry, {
         status: "generating_outline",
         stage: "generating_outline",
         progress: 25,
         message: "Generating lesson outline",
-        error_message: null,
-        updated_at: now,
+        errorMessage: null,
       });
+      const outlineStartedAt = Date.now();
 
       const outline = await generateLessonOutline({
         prompt: lesson.prompt ?? "Teach me the key ideas from the uploaded material.",
@@ -719,6 +782,9 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
         });
       });
       lessonTitle = outline.title;
+      telemetry = mergeTelemetry(telemetry, {
+        outlineMs: Date.now() - outlineStartedAt,
+      });
     } else {
       db.prepare("DELETE FROM scenes WHERE lesson_id = ?").run(lesson.id);
     }
@@ -732,6 +798,10 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
     let latestLessonSummary: string | undefined;
     let latestLessonTakeaways: string[] | undefined;
     const sceneRows = outlineRows.filter((row) => row.scene_type === "lesson" || row.scene_type === "quiz");
+    let lessonSceneCount = 0;
+    let quizSceneCount = 0;
+    let sceneGenerationMs = 0;
+    let quizGenerationMs = 0;
 
     if (sceneRows.length === 0) {
       throw new AppError("INTERNAL_ERROR", "Generated outline did not contain any scenes.");
@@ -741,19 +811,18 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
       const progress = Math.min(95, 55 + Math.round(((index + 1) / sceneRows.length) * 40));
       const isLessonScene = outlineRow.scene_type === "lesson";
 
-      updateJob.run({
-        id: jobId,
+      telemetry = updateJobRecord(updateJob, jobId, telemetry, {
         status: isLessonScene ? "generating_scenes" : "generating_quizzes",
         stage: isLessonScene ? "generating_scenes" : "generating_quizzes",
         progress,
         message: isLessonScene
           ? `Generating lesson scene ${index + 1} of ${sceneRows.length}`
           : `Generating quiz scene ${index + 1} of ${sceneRows.length}`,
-        error_message: null,
-        updated_at: Date.now(),
+        errorMessage: null,
       });
 
       if (isLessonScene) {
+        const sceneStartedAt = Date.now();
         const sourceContext = buildSourceContext({
           sourceText: sourceUpload?.extractedText,
           lessonPrompt: lesson.prompt ?? lessonTitle,
@@ -793,9 +862,13 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
           updated_at: now,
         });
 
+        lessonSceneCount += 1;
+        sceneGenerationMs += Date.now() - sceneStartedAt;
+
         continue;
       }
 
+      const quizStartedAt = Date.now();
       const sourceContext = buildSourceContext({
         sourceText: sourceUpload?.extractedText,
         lessonPrompt: lesson.prompt ?? lessonTitle,
@@ -833,6 +906,9 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
         created_at: now,
         updated_at: now,
       });
+
+      quizSceneCount += 1;
+      quizGenerationMs += Date.now() - quizStartedAt;
     }
 
     updateLesson.run({
@@ -843,14 +919,19 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
       updated_at: now,
     });
 
-    updateJob.run({
-      id: jobId,
+    updateJobRecord(updateJob, jobId, telemetry, {
       status: "ready",
       stage: "ready",
       progress: 100,
       message: "All lesson scenes are ready",
-      error_message: null,
-      updated_at: now,
+      errorMessage: null,
+      telemetry: {
+        sceneGenerationMs,
+        quizGenerationMs,
+        lessonSceneCount,
+        quizSceneCount,
+        totalMs: Date.now() - jobStartedAt,
+      },
     });
   } catch (error) {
     const message =
@@ -863,14 +944,12 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
       error_message: message,
       updated_at: now,
     });
-    updateJob.run({
-      id: jobId,
+    updateJobRecord(updateJob, jobId, telemetry, {
       status: "error",
       stage: "error",
       progress: 100,
       message: "Outline generation failed",
-      error_message: message,
-      updated_at: now,
+      errorMessage: message,
     });
   }
 }
@@ -879,6 +958,62 @@ export async function getLessonJob(jobId: string): Promise<LessonJob | null> {
   const db = getDatabase();
   const row = db.prepare("SELECT * FROM lesson_jobs WHERE id = ?").get(jobId) as JobRow | undefined;
   return row ? mapJob(row) : null;
+}
+
+export async function getRuntimeUsageDashboard(limit = 6): Promise<RuntimeUsageDashboard> {
+  const db = getDatabase();
+  const rows = db
+    .prepare(
+      `SELECT lesson_jobs.id,
+              lesson_jobs.lesson_id,
+              lesson_jobs.status,
+              lesson_jobs.stage,
+              lesson_jobs.progress,
+              lesson_jobs.message,
+              lesson_jobs.error_message,
+              lesson_jobs.telemetry_json,
+              lesson_jobs.updated_at,
+              lessons.title AS lesson_title
+       FROM lesson_jobs
+       INNER JOIN lessons ON lessons.id = lesson_jobs.lesson_id
+       ORDER BY lesson_jobs.updated_at DESC
+       LIMIT ?`,
+    )
+    .all(limit) as JobRow[];
+
+  const recentJobs: RuntimeUsageJobInsight[] = rows.map((row) => ({
+    jobId: row.id,
+    lessonId: row.lesson_id,
+    lessonTitle: row.lesson_title ?? "Lesson",
+    status: row.status,
+    updatedAt: row.updated_at ?? Date.now(),
+    telemetry: readTelemetry(row),
+  }));
+
+  const completedTelemetry = recentJobs
+    .map((job) => job.telemetry)
+    .filter((telemetry): telemetry is LessonJobTelemetry => Boolean(telemetry?.totalMs));
+
+  const totalDurations = completedTelemetry.map((telemetry) => telemetry.totalMs as number);
+
+  return {
+    recentJobs,
+    completedJobs: completedTelemetry.length,
+    averageTotalMs:
+      totalDurations.length > 0
+        ? Math.round(totalDurations.reduce((sum, value) => sum + value, 0) / totalDurations.length)
+        : undefined,
+    fastestTotalMs: totalDurations.length > 0 ? Math.min(...totalDurations) : undefined,
+    slowestTotalMs: totalDurations.length > 0 ? Math.max(...totalDurations) : undefined,
+    totalLessonScenes: completedTelemetry.reduce(
+      (sum, telemetry) => sum + (telemetry.lessonSceneCount ?? 0),
+      0,
+    ),
+    totalQuizScenes: completedTelemetry.reduce(
+      (sum, telemetry) => sum + (telemetry.quizSceneCount ?? 0),
+      0,
+    ),
+  };
 }
 
 export async function getLessonById(lessonId: string): Promise<Lesson | null> {
