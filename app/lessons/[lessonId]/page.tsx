@@ -6,6 +6,9 @@ import { RegenerateSceneButton } from "@/components/lesson/regenerate-scene-butt
 import { SceneProgressTracker } from "@/components/lesson/scene-progress-tracker";
 import { TutorChatClient } from "@/components/lesson/tutor-chat-client";
 import {
+  getFormatAwareCopy,
+} from "@/lib/server/lessons/format-aware-ui";
+import {
   getSceneProgressLabel,
   resolveSceneIndex,
 } from "@/lib/server/lessons/scene-navigation";
@@ -37,6 +40,8 @@ export default async function LessonPage({
   const activeScene = activeSceneIndex >= 0 ? lesson.scenes[activeSceneIndex] : null;
   const activeSceneStep = activeSceneIndex + 1;
   const generationMode = getGenerationModeDefinition(lesson.generationMode);
+  const formatAwareCopy = getFormatAwareCopy(lesson.lessonFormat);
+  const focusCard = activeScene ? formatAwareCopy.focusCard(activeScene) : null;
 
   return (
     <main className="page-shell">
@@ -59,7 +64,7 @@ export default async function LessonPage({
       </nav>
 
       <section className="hero">
-        <span className="eyebrow">Lesson Ready</span>
+        <span className="eyebrow">{formatAwareCopy.heroEyebrow}</span>
         <h1>{lesson.title}</h1>
         <p>{lesson.prompt ?? "This lesson was generated from your uploaded material."}</p>
         <p className="status-copy">
@@ -99,7 +104,7 @@ export default async function LessonPage({
 
       <section className="lesson-layout">
         <aside className="card scene-sidebar">
-          <h2>Lesson path</h2>
+          <h2>{formatAwareCopy.pathTitle}</h2>
           <p>
             {lesson.scenes.length} scene{lesson.scenes.length === 1 ? "" : "s"} generated from{" "}
             {lesson.outline.length} outline item{lesson.outline.length === 1 ? "" : "s"}.
@@ -117,7 +122,7 @@ export default async function LessonPage({
                     <span className="scene-step-order">{index + 1}</span>
                     <span>
                       <strong>{scene.title}</strong>
-                      <small>{scene.type === "lesson" ? "Teaching scene" : "Quiz scene"}</small>
+                      <small>{formatAwareCopy.sceneLabel(scene)}</small>
                     </span>
                   </Link>
                 </li>
@@ -127,13 +132,24 @@ export default async function LessonPage({
         </aside>
 
         <section className="card scene-stage">
-          <h2>Current scene</h2>
+          <h2>{formatAwareCopy.stageTitle}</h2>
           {activeScene ? (
             <>
               <span className="eyebrow">{getSceneProgressLabel(activeSceneIndex, lesson.scenes)}</span>
               <article className="scene-article">
                 <h3>{activeScene.title}</h3>
                 <RegenerateSceneButton lessonId={lesson.id} sceneId={activeScene.id} />
+                {focusCard ? (
+                  <div className={`format-focus-card ${lesson.lessonFormat}`}>
+                    <p className="format-focus-title">{focusCard.title}</p>
+                    <p className="status-copy">{focusCard.copy}</p>
+                    <ul className="meta-list format-focus-list">
+                      {focusCard.bullets.map((bullet) => (
+                        <li key={bullet}>{bullet}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
                 {"content" in activeScene && activeScene.content && "summary" in activeScene.content ? (
                   <>
                     <p>{activeScene.content.summary}</p>
