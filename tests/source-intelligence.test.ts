@@ -19,6 +19,8 @@ describe("source-intelligence", () => {
     expect(context?.excerpt).toContain("conduction, convection, and radiation");
     expect(context?.highlights).toContain("transfer");
     expect(context?.highlights).toContain("conduction");
+    expect(context?.rationale).toContain("Heat transfer");
+    expect(context?.emphasisLabel).toBe("Matched source terms");
   });
 
   it("returns undefined when no source text is available", () => {

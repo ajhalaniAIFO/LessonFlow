@@ -12,4 +12,6 @@ export type UploadRecord = {
 export type SourceContext = {
   excerpt: string;
   highlights: string[];
+  rationale?: string;
+  emphasisLabel?: string;
 };
