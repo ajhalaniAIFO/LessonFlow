@@ -247,6 +247,56 @@ select {
   color: var(--muted);
 }
 
+.runtime-dashboard {
+  display: grid;
+  gap: 18px;
+}
+
+.runtime-metric-grid {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 760px) {
+  .runtime-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.runtime-job-list {
+  display: grid;
+  gap: 12px;
+}
+
+.runtime-job-row {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(248, 250, 255, 0.88);
+}
+
+@media (min-width: 860px) {
+  .runtime-job-row {
+    grid-template-columns: minmax(0, 1.8fr) auto auto;
+    align-items: center;
+  }
+}
+
+.runtime-job-metrics {
+  display: grid;
+  gap: 4px;
+}
+
+.runtime-job-metrics span {
+  font-weight: 700;
+}
+
+.runtime-job-metrics small {
+  color: var(--muted);
+}
+
 .source-trace-box {
   gap: 10px;
 }
