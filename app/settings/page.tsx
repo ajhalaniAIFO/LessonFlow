@@ -1,19 +1,24 @@
 import Link from "next/link";
 import { SettingsForm } from "@/components/settings/model-settings-form";
+import { RuntimeBenchmarkCard } from "@/components/settings/runtime-benchmark-card";
 import { getHardwareProfile } from "@/lib/runtime/hardware-profile";
+import { getRuntimeBenchmark } from "@/lib/runtime/runtime-benchmarking";
 import { getHardwareAwareRuntimeRecommendation } from "@/lib/runtime/runtime-recommendations";
+import { getRuntimeUsageDashboard } from "@/lib/server/lessons/lesson-service";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const settings = await getModelSettings();
+  const runtimeDashboard = await getRuntimeUsageDashboard();
   const hardwareProfile = getHardwareProfile();
   const balancedStandardRecommendation = getHardwareAwareRuntimeRecommendation(
     "balanced",
     "standard",
     hardwareProfile,
   );
+  const benchmark = getRuntimeBenchmark(settings, runtimeDashboard);
   const providerTip = balancedStandardRecommendation.providerTips[settings.provider];
 
   return (
@@ -89,6 +94,8 @@ export default async function SettingsPage() {
               <p className="status-copy">{balancedStandardRecommendation.caution}</p>
             </div>
           ) : null}
+
+          <RuntimeBenchmarkCard benchmark={benchmark} />
         </aside>
       </section>
     </main>
