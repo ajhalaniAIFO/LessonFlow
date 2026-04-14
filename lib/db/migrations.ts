@@ -55,6 +55,16 @@ export function runMigrations(db: Database.Database) {
     db.exec("ALTER TABLE lessons ADD COLUMN lesson_format TEXT NOT NULL DEFAULT 'standard';");
   }
 
+  const hasRuntimeProvider = lessonColumns.some((column) => column.name === "runtime_provider");
+  if (!hasRuntimeProvider) {
+    db.exec("ALTER TABLE lessons ADD COLUMN runtime_provider TEXT;");
+  }
+
+  const hasRuntimeModel = lessonColumns.some((column) => column.name === "runtime_model");
+  if (!hasRuntimeModel) {
+    db.exec("ALTER TABLE lessons ADD COLUMN runtime_model TEXT;");
+  }
+
   const lessonJobColumns = db
     .prepare("PRAGMA table_info(lesson_jobs)")
     .all() as Array<{ name: string }>;

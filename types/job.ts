@@ -32,6 +32,8 @@ export type RuntimeUsageJobInsight = {
   jobId: string;
   lessonId: string;
   lessonTitle: string;
+  runtimeProvider?: "ollama" | "openai_compatible";
+  runtimeModel?: string;
   status: LessonJobStatus;
   updatedAt: number;
   telemetry?: LessonJobTelemetry;
@@ -45,4 +47,13 @@ export type RuntimeUsageDashboard = {
   slowestTotalMs?: number;
   totalLessonScenes: number;
   totalQuizScenes: number;
+};
+
+export type RuntimeComparisonItem = {
+  runtimeProvider: "ollama" | "openai_compatible";
+  runtimeModel: string;
+  completedJobs: number;
+  averageTotalMs?: number;
+  fastestTotalMs?: number;
+  slowestTotalMs?: number;
 };

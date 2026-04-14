@@ -3,6 +3,7 @@ import { getDatabase } from "@/lib/db/client";
 import { generateLessonOutline } from "@/lib/server/lessons/outline-generator";
 import { generateQuizScene } from "@/lib/server/lessons/quiz-generator";
 import { generateLessonScene } from "@/lib/server/lessons/scene-generator";
+import { getModelSettings } from "@/lib/server/settings/settings-service";
 import { buildSourceContext } from "@/lib/server/uploads/source-intelligence";
 import { getUploadById } from "@/lib/server/uploads/upload-service";
 import { AppError } from "@/lib/server/utils/errors";
@@ -21,9 +22,11 @@ import type {
   LessonJob,
   LessonJobStatus,
   LessonJobTelemetry,
+  RuntimeComparisonItem,
   RuntimeUsageDashboard,
   RuntimeUsageJobInsight,
 } from "@/types/job";
+import type { ModelProvider } from "@/types/settings";
 import type { InteractiveBlockKind, InteractiveBlockProgress, Scene } from "@/types/scene";
 
 type LessonRow = {
@@ -37,6 +40,8 @@ type LessonRow = {
   learner_level: LearnerLevel;
   teaching_style: TeachingStyle;
   lesson_format: LessonFormat;
+  runtime_provider: ModelProvider | null;
+  runtime_model: string | null;
   status: Lesson["status"];
   error_message: string | null;
   last_viewed_scene_order: number | null;
@@ -64,6 +69,8 @@ type JobRow = {
   telemetry_json: string | null;
   updated_at?: number;
   lesson_title?: string;
+  runtime_provider?: ModelProvider | null;
+  runtime_model?: string | null;
 };
 
 type SceneRow = {
@@ -128,6 +135,8 @@ function mapLesson(
     learnerLevel: row.learner_level,
     teachingStyle: row.teaching_style,
     lessonFormat: row.lesson_format,
+    runtimeProvider: row.runtime_provider ?? undefined,
+    runtimeModel: row.runtime_model ?? undefined,
     status: row.status,
     errorMessage: row.error_message ?? undefined,
     lastViewedSceneOrder: row.last_viewed_scene_order ?? undefined,
@@ -262,10 +271,11 @@ export async function createLessonJob(
   const learnerLevel = input.learnerLevel ?? "intermediate";
   const teachingStyle = input.teachingStyle ?? "practical";
   const lessonFormat = input.lessonFormat ?? "standard";
+  const settings = await getModelSettings();
 
   db.prepare(
-      `INSERT INTO lessons (id, title, prompt, source_upload_id, source_type, language, generation_mode, learner_level, teaching_style, lesson_format, status, error_message, created_at, updated_at)
-     VALUES (@id, @title, @prompt, @source_upload_id, @source_type, @language, @generation_mode, @learner_level, @teaching_style, @lesson_format, @status, @error_message, @created_at, @updated_at)`,
+      `INSERT INTO lessons (id, title, prompt, source_upload_id, source_type, language, generation_mode, learner_level, teaching_style, lesson_format, runtime_provider, runtime_model, status, error_message, created_at, updated_at)
+     VALUES (@id, @title, @prompt, @source_upload_id, @source_type, @language, @generation_mode, @learner_level, @teaching_style, @lesson_format, @runtime_provider, @runtime_model, @status, @error_message, @created_at, @updated_at)`,
   ).run({
     id: lessonId,
     title: "Generating lesson...",
@@ -277,6 +287,8 @@ export async function createLessonJob(
     learner_level: learnerLevel,
     teaching_style: teachingStyle,
     lesson_format: lessonFormat,
+    runtime_provider: settings.provider,
+    runtime_model: settings.model || null,
     status: "generating",
     error_message: null,
     created_at: now,
@@ -973,7 +985,9 @@ export async function getRuntimeUsageDashboard(limit = 6): Promise<RuntimeUsageD
               lesson_jobs.error_message,
               lesson_jobs.telemetry_json,
               lesson_jobs.updated_at,
-              lessons.title AS lesson_title
+              lessons.title AS lesson_title,
+              lessons.runtime_provider,
+              lessons.runtime_model
        FROM lesson_jobs
        INNER JOIN lessons ON lessons.id = lesson_jobs.lesson_id
        ORDER BY lesson_jobs.updated_at DESC
@@ -985,6 +999,8 @@ export async function getRuntimeUsageDashboard(limit = 6): Promise<RuntimeUsageD
     jobId: row.id,
     lessonId: row.lesson_id,
     lessonTitle: row.lesson_title ?? "Lesson",
+    runtimeProvider: row.runtime_provider ?? undefined,
+    runtimeModel: row.runtime_model ?? undefined,
     status: row.status,
     updatedAt: row.updated_at ?? Date.now(),
     telemetry: readTelemetry(row),
@@ -1016,6 +1032,54 @@ export async function getRuntimeUsageDashboard(limit = 6): Promise<RuntimeUsageD
   };
 }
 
+export async function getRuntimeComparison(limit = 24): Promise<RuntimeComparisonItem[]> {
+  const dashboard = await getRuntimeUsageDashboard(limit);
+  const grouped = new Map<string, RuntimeComparisonItem & { samples: number[] }>();
+
+  for (const job of dashboard.recentJobs) {
+    if (!job.runtimeProvider || !job.runtimeModel || typeof job.telemetry?.totalMs !== "number") {
+      continue;
+    }
+
+    const key = `${job.runtimeProvider}::${job.runtimeModel}`;
+    const existing = grouped.get(key);
+
+    if (!existing) {
+      grouped.set(key, {
+        runtimeProvider: job.runtimeProvider,
+        runtimeModel: job.runtimeModel,
+        completedJobs: 1,
+        averageTotalMs: job.telemetry.totalMs,
+        fastestTotalMs: job.telemetry.totalMs,
+        slowestTotalMs: job.telemetry.totalMs,
+        samples: [job.telemetry.totalMs],
+      });
+      continue;
+    }
+
+    existing.completedJobs += 1;
+    existing.samples.push(job.telemetry.totalMs);
+    existing.fastestTotalMs = Math.min(existing.fastestTotalMs ?? job.telemetry.totalMs, job.telemetry.totalMs);
+    existing.slowestTotalMs = Math.max(existing.slowestTotalMs ?? job.telemetry.totalMs, job.telemetry.totalMs);
+  }
+
+  return [...grouped.values()]
+    .map(({ samples, ...item }) => ({
+      ...item,
+      averageTotalMs:
+        samples.length > 0
+          ? Math.round(samples.reduce((sum, value) => sum + value, 0) / samples.length)
+          : undefined,
+    }))
+    .sort((left, right) => {
+      if (right.completedJobs !== left.completedJobs) {
+        return right.completedJobs - left.completedJobs;
+      }
+
+      return (left.averageTotalMs ?? Number.POSITIVE_INFINITY) - (right.averageTotalMs ?? Number.POSITIVE_INFINITY);
+    });
+}
+
 export async function getLessonById(lessonId: string): Promise<Lesson | null> {
   const db = getDatabase();
   const lesson = db.prepare("SELECT * FROM lessons WHERE id = ?").get(lessonId) as LessonRow | undefined;
@@ -1043,12 +1107,14 @@ export async function listLessons(): Promise<LessonListItem[]> {
               lessons.learner_level,
               lessons.teaching_style,
               lessons.lesson_format,
+              lessons.runtime_provider,
+              lessons.runtime_model,
               lessons.last_viewed_scene_order,
               COUNT(scenes.id) AS scene_count
        FROM lessons
        LEFT JOIN scenes ON scenes.lesson_id = lessons.id
-       GROUP BY lessons.id, lessons.title, lessons.status, lessons.updated_at, lessons.generation_mode, lessons.learner_level, lessons.teaching_style, lessons.lesson_format, lessons.last_viewed_scene_order
-       ORDER BY lessons.updated_at DESC`,
+       GROUP BY lessons.id, lessons.title, lessons.status, lessons.updated_at, lessons.generation_mode, lessons.learner_level, lessons.teaching_style, lessons.lesson_format, lessons.runtime_provider, lessons.runtime_model, lessons.last_viewed_scene_order
+        ORDER BY lessons.updated_at DESC`,
     )
     .all() as Array<{
     id: string;
@@ -1058,6 +1124,8 @@ export async function listLessons(): Promise<LessonListItem[]> {
     learner_level: LearnerLevel;
     teaching_style: TeachingStyle;
     lesson_format: LessonFormat;
+    runtime_provider: ModelProvider | null;
+    runtime_model: string | null;
     updated_at: number;
     scene_count: number;
     last_viewed_scene_order: number | null;
@@ -1071,6 +1139,8 @@ export async function listLessons(): Promise<LessonListItem[]> {
     learnerLevel: row.learner_level,
     teachingStyle: row.teaching_style,
     lessonFormat: row.lesson_format,
+    runtimeProvider: row.runtime_provider ?? undefined,
+    runtimeModel: row.runtime_model ?? undefined,
     sceneCount: row.scene_count,
     lastViewedSceneOrder: row.last_viewed_scene_order ?? undefined,
     updatedAt: row.updated_at,
