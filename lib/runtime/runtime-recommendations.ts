@@ -1,5 +1,6 @@
 import type { GenerationMode, LessonFormat } from "@/types/lesson";
 import type { ModelProvider } from "@/types/settings";
+import type { HardwareProfile, HardwareTier } from "@/lib/runtime/hardware-profile";
 
 type WorkloadClass = "light" | "medium" | "heavy";
 
@@ -16,6 +17,13 @@ export type RuntimeRecommendation = {
       hint: string;
     }
   >;
+};
+
+export type HardwareAwareRuntimeRecommendation = RuntimeRecommendation & {
+  hardwareTier: HardwareTier;
+  hardwareSummary: string;
+  fit: "comfortable" | "watch" | "strained";
+  caution?: string;
 };
 
 function resolveWorkloadClass(
@@ -116,4 +124,52 @@ export function getRuntimeRecommendation(
   lessonFormat: LessonFormat,
 ) {
   return recommendations[resolveWorkloadClass(generationMode, lessonFormat)];
+}
+
+function getHardwareFit(
+  workloadClass: WorkloadClass,
+  hardwareTier: HardwareTier,
+): HardwareAwareRuntimeRecommendation["fit"] {
+  if (
+    (workloadClass === "light" && hardwareTier === "entry") ||
+    (workloadClass === "medium" && hardwareTier === "mid") ||
+    (workloadClass === "heavy" && hardwareTier === "strong")
+  ) {
+    return "comfortable";
+  }
+
+  if (
+    (workloadClass === "medium" && hardwareTier === "entry") ||
+    (workloadClass === "heavy" && hardwareTier === "mid") ||
+    (workloadClass === "light" && hardwareTier === "mid")
+  ) {
+    return "watch";
+  }
+
+  return "strained";
+}
+
+export function getHardwareAwareRuntimeRecommendation(
+  generationMode: GenerationMode,
+  lessonFormat: LessonFormat,
+  hardwareProfile: HardwareProfile,
+): HardwareAwareRuntimeRecommendation {
+  const base = getRuntimeRecommendation(generationMode, lessonFormat);
+  const fit = getHardwareFit(base.workloadClass, hardwareProfile.tier);
+  const hardwareSummary = `${hardwareProfile.cpuCores} CPU cores, ${hardwareProfile.totalMemoryGb} GB RAM, ${hardwareProfile.platform}`;
+
+  const caution =
+    fit === "strained"
+      ? "This lesson setup may feel slow on this machine. Consider fast mode, a standard lesson format, or a smaller instruct model."
+      : fit === "watch"
+        ? "This setup should work, but slower scene generation or larger models may start to feel heavy."
+        : undefined;
+
+  return {
+    ...base,
+    hardwareTier: hardwareProfile.tier,
+    hardwareSummary,
+    fit,
+    caution,
+  };
 }
