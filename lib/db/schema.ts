@@ -128,3 +128,18 @@ export const CHAT_MESSAGES_TABLE_SQL = `
     FOREIGN KEY (scene_id) REFERENCES scenes(id) ON DELETE SET NULL
   );
 `;
+
+export const INTERACTIVE_BLOCK_PROGRESS_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS interactive_block_progress (
+    id TEXT PRIMARY KEY,
+    lesson_id TEXT NOT NULL,
+    scene_id TEXT NOT NULL,
+    block_kind TEXT NOT NULL,
+    is_completed INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE CASCADE,
+    FOREIGN KEY (scene_id) REFERENCES scenes(id) ON DELETE CASCADE,
+    UNIQUE (lesson_id, scene_id, block_kind)
+  );
+`;

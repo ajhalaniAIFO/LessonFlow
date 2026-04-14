@@ -18,7 +18,7 @@ import type {
   LessonFormat,
 } from "@/types/lesson";
 import type { LessonJob, LessonJobStatus } from "@/types/job";
-import type { Scene } from "@/types/scene";
+import type { InteractiveBlockKind, InteractiveBlockProgress, Scene } from "@/types/scene";
 
 type LessonRow = {
   id: string;
@@ -69,6 +69,14 @@ type SceneRow = {
   error_message: string | null;
 };
 
+type InteractiveBlockProgressRow = {
+  lesson_id: string;
+  scene_id: string;
+  block_kind: InteractiveBlockKind;
+  is_completed: number;
+  updated_at: number;
+};
+
 function mapScene(row: SceneRow): Scene {
   return {
     id: row.id,
@@ -83,7 +91,23 @@ function mapScene(row: SceneRow): Scene {
   };
 }
 
-function mapLesson(row: LessonRow, outline: OutlineRow[], scenes: SceneRow[]): Lesson {
+function mapInteractiveBlockProgress(
+  row: InteractiveBlockProgressRow,
+): InteractiveBlockProgress {
+  return {
+    sceneId: row.scene_id,
+    blockKind: row.block_kind,
+    completed: row.is_completed === 1,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapLesson(
+  row: LessonRow,
+  outline: OutlineRow[],
+  scenes: SceneRow[],
+  interactiveBlockProgress: InteractiveBlockProgressRow[],
+): Lesson {
   return {
     id: row.id,
     title: row.title,
@@ -108,6 +132,7 @@ function mapLesson(row: LessonRow, outline: OutlineRow[], scenes: SceneRow[]): L
         order: item.display_order,
       })),
     scenes: scenes.sort((a, b) => a.display_order - b.display_order).map(mapScene),
+    interactiveBlockProgress: interactiveBlockProgress.map(mapInteractiveBlockProgress),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -866,7 +891,12 @@ export async function getLessonById(lessonId: string): Promise<Lesson | null> {
   const scenes = db
     .prepare("SELECT * FROM scenes WHERE lesson_id = ? ORDER BY display_order ASC")
     .all(lessonId) as SceneRow[];
-  return mapLesson(lesson, outline, scenes);
+  const interactiveBlockProgress = db
+    .prepare(
+      "SELECT lesson_id, scene_id, block_kind, is_completed, updated_at FROM interactive_block_progress WHERE lesson_id = ? ORDER BY updated_at DESC",
+    )
+    .all(lessonId) as InteractiveBlockProgressRow[];
+  return mapLesson(lesson, outline, scenes, interactiveBlockProgress);
 }
 
 export async function listLessons(): Promise<LessonListItem[]> {
@@ -925,6 +955,34 @@ export async function rememberLessonProgress(lessonId: string, sceneOrder: numbe
   if (result.changes === 0) {
     throw new AppError("INVALID_REQUEST", "Lesson not found.");
   }
+}
+
+export async function saveInteractiveBlockProgress(
+  lessonId: string,
+  sceneId: string,
+  blockKind: InteractiveBlockKind,
+  completed: boolean,
+) {
+  if (!["action", "checkpoint"].includes(blockKind)) {
+    throw new AppError("INVALID_REQUEST", "A valid interactive block kind is required.");
+  }
+
+  const db = getDatabase();
+  const scene = db
+    .prepare("SELECT id FROM scenes WHERE id = ? AND lesson_id = ?")
+    .get(sceneId, lessonId) as { id: string } | undefined;
+
+  if (!scene) {
+    throw new AppError("INVALID_REQUEST", "Scene not found.");
+  }
+
+  const now = Date.now();
+  db.prepare(
+    `INSERT INTO interactive_block_progress (id, lesson_id, scene_id, block_kind, is_completed, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(lesson_id, scene_id, block_kind)
+     DO UPDATE SET is_completed = excluded.is_completed, updated_at = excluded.updated_at`,
+  ).run(randomUUID(), lessonId, sceneId, blockKind, completed ? 1 : 0, now, now);
 }
 
 export async function renameLesson(lessonId: string, nextTitle: string) {

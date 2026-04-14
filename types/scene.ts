@@ -53,6 +53,15 @@ export type QuizAttempt = {
   createdAt: number;
 };
 
+export type InteractiveBlockKind = "action" | "checkpoint";
+
+export type InteractiveBlockProgress = {
+  sceneId: string;
+  blockKind: InteractiveBlockKind;
+  completed: boolean;
+  updatedAt: number;
+};
+
 export type SceneStatus = "pending" | "ready" | "error";
 
 export type Scene = {

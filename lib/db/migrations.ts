@@ -1,6 +1,7 @@
 import type Database from "better-sqlite3";
 import {
   CHAT_MESSAGES_TABLE_SQL,
+  INTERACTIVE_BLOCK_PROGRESS_TABLE_SQL,
   LESSONS_TABLE_SQL,
   LESSON_JOBS_TABLE_SQL,
   OUTLINE_ITEMS_TABLE_SQL,
@@ -22,6 +23,7 @@ export function runMigrations(db: Database.Database) {
   db.exec(QUIZ_ATTEMPTS_TABLE_SQL);
   db.exec(QUIZ_ANSWERS_TABLE_SQL);
   db.exec(CHAT_MESSAGES_TABLE_SQL);
+  db.exec(INTERACTIVE_BLOCK_PROGRESS_TABLE_SQL);
 
   const lessonColumns = db.prepare("PRAGMA table_info(lessons)").all() as Array<{ name: string }>;
   const hasLastViewedSceneOrder = lessonColumns.some(
