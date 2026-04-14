@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { getRuntimeGuidance } from "@/lib/server/settings/runtime-guidance";
 import type { ModelInfo } from "@/lib/server/llm/types";
 import type { ApiResponse } from "@/types/api";
 import type { ModelSettings } from "@/types/settings";
@@ -34,16 +35,10 @@ export function SettingsForm({ initialSettings }: FormProps) {
     () => modelOptions.some((model) => model.id === form.model),
     [form.model, modelOptions],
   );
-  const providerBaseUrlPlaceholder =
-    form.provider === "ollama"
-      ? "http://127.0.0.1:11434"
-      : "http://127.0.0.1:8000/v1";
-  const providerModelPlaceholder =
-    form.provider === "ollama" ? "qwen2.5:7b-instruct" : "google/gemma-3-4b-it";
-  const providerBaseUrlHint =
-    form.provider === "ollama"
-      ? "Use your local Ollama endpoint."
-      : "Use the base URL for your local OpenAI-compatible endpoint, such as vLLM or llama.cpp server mode.";
+  const providerGuidance = useMemo(() => getRuntimeGuidance(form.provider), [form.provider]);
+  const providerBaseUrlPlaceholder = providerGuidance.defaultUrl;
+  const providerModelPlaceholder = providerGuidance.exampleModel;
+  const providerBaseUrlHint = `Use the ${providerGuidance.label} endpoint shape: ${providerGuidance.endpointShape}.`;
 
   function updateField<K extends keyof ModelSettings>(key: K, value: ModelSettings[K]) {
     setForm((current) => ({
@@ -165,6 +160,9 @@ export function SettingsForm({ initialSettings }: FormProps) {
           <option value="ollama">Ollama</option>
           <option value="openai_compatible">OpenAI-compatible local runtime</option>
         </select>
+        <span className="field-hint">
+          {providerGuidance.compatibilityHints[0]}
+        </span>
       </div>
 
       <div className="field">
@@ -197,8 +195,17 @@ export function SettingsForm({ initialSettings }: FormProps) {
         <span className="field-hint">
           {selectedModelKnown
             ? "This model matches one returned by your local runtime."
-            : "Manual entry is supported if model discovery is unavailable."}
+            : `Manual entry is supported if model discovery is unavailable. Try a model like ${providerGuidance.exampleModel}.`}
         </span>
+      </div>
+
+      <div className="status-box">
+        <p className="status-title">{providerGuidance.label} quick setup</p>
+        <ol className="step-list">
+          {providerGuidance.setupSteps.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
       </div>
 
       <div className="field">

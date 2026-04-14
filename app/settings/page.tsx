@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SettingsForm } from "@/components/settings/model-settings-form";
+import { RuntimeGuidancePanel } from "@/components/settings/runtime-guidance-panel";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
 
 export const dynamic = "force-dynamic";
@@ -40,28 +41,7 @@ export default async function SettingsPage() {
           <SettingsForm initialSettings={settings} />
         </article>
 
-        <aside className="card">
-          <h3>Quick guidance</h3>
-          <ul className="meta-list">
-            <li>
-              Default Ollama URL:{" "}
-              <span className="code-inline">http://127.0.0.1:11434</span>
-            </li>
-            <li>
-              Example OpenAI-compatible URL:{" "}
-              <span className="code-inline">http://127.0.0.1:8000/v1</span>
-            </li>
-            <li>
-              Example models:{" "}
-              <span className="code-inline">qwen2.5:7b-instruct</span> or{" "}
-              <span className="code-inline">google/gemma-3-4b-it</span>
-            </li>
-            <li>
-              If model discovery returns nothing, you can still type the model name manually.
-            </li>
-            <li>No cloud API key is required for this milestone.</li>
-          </ul>
-        </aside>
+        <RuntimeGuidancePanel activeProvider={settings.provider} />
       </section>
     </main>
   );
