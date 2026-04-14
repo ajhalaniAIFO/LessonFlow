@@ -4,6 +4,7 @@ import { RuntimeBenchmarkCard } from "@/components/settings/runtime-benchmark-ca
 import { RuntimeComparisonCard } from "@/components/settings/runtime-comparison-card";
 import { RuntimeHistoryCard } from "@/components/settings/runtime-history-card";
 import { RuntimeTrendCard } from "@/components/settings/runtime-trend-card";
+import { getRuntimeComparisonCharts } from "@/lib/runtime/runtime-comparison-chart";
 import { getHardwareProfile } from "@/lib/runtime/hardware-profile";
 import { getRecommendedRuntimeSetup } from "@/lib/runtime/runtime-comparison";
 import { getRuntimeBenchmark } from "@/lib/runtime/runtime-benchmarking";
@@ -19,6 +20,7 @@ export default async function SettingsPage() {
   const settings = await getModelSettings();
   const runtimeDashboard = await getRuntimeUsageDashboard();
   const runtimeComparison = await getRuntimeComparison();
+  const runtimeComparisonCharts = getRuntimeComparisonCharts(runtimeDashboard.recentJobs);
   const hardwareProfile = getHardwareProfile();
   const balancedStandardRecommendation = getHardwareAwareRuntimeRecommendation(
     "balanced",
@@ -140,7 +142,7 @@ export default async function SettingsPage() {
           <RuntimeBenchmarkCard benchmark={benchmark} />
           <RuntimeTrendCard trend={trend} />
           <RuntimeHistoryCard history={history} />
-          <RuntimeComparisonCard items={runtimeComparison} />
+          <RuntimeComparisonCard items={runtimeComparison} charts={runtimeComparisonCharts} />
         </aside>
       </section>
     </main>
