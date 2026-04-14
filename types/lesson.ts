@@ -1,4 +1,4 @@
-import type { Scene, SceneType } from "./scene";
+import type { InteractiveBlockProgress, Scene, SceneType } from "./scene";
 
 export type GenerationMode = "fast" | "balanced" | "detailed";
 export type LearnerLevel = "beginner" | "intermediate" | "advanced";
@@ -29,6 +29,7 @@ export type Lesson = {
   status: LessonStatus;
   outline: OutlineItem[];
   scenes: Scene[];
+  interactiveBlockProgress: InteractiveBlockProgress[];
   lastViewedSceneOrder?: number;
   errorMessage?: string;
   createdAt: number;

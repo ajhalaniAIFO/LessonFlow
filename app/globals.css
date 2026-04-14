@@ -83,12 +83,12 @@ select {
 @media (min-width: 960px) {
   .card-grid {
     grid-template-columns: 1.1fr 0.9fr;
-    align-items: start;
+    align-items: flex-start;
   }
 
   .lesson-layout {
     grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
-    align-items: start;
+    align-items: flex-start;
   }
 }
 
@@ -341,7 +341,7 @@ select {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 14px;
-  align-items: start;
+  align-items: flex-start;
   padding: 14px;
   border-radius: 18px;
   border: 1px solid var(--border);
@@ -424,6 +424,10 @@ select {
   background: rgba(231, 239, 255, 0.45);
 }
 
+.interactive-format-card.complete {
+  border-style: solid;
+}
+
 .interactive-format-card.workshop {
   border-color: rgba(19, 115, 51, 0.28);
   background: rgba(236, 248, 244, 0.82);
@@ -437,6 +441,14 @@ select {
 .interactive-format-title {
   margin: 0;
   font-weight: 700;
+}
+
+.interactive-format-header {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .interactive-format-list {
@@ -488,7 +500,7 @@ select {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 12px;
-  align-items: start;
+  align-items: flex-start;
   padding: 14px;
   border-radius: 16px;
   border: 1px solid var(--border);

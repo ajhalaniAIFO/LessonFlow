@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { InteractiveBlockCard } from "@/components/lesson/interactive-block-card";
 import { LessonSummaryActions } from "@/components/lesson/lesson-summary-actions";
 import { QuizSceneClient } from "@/components/lesson/quiz-scene-client";
 import { RegenerateLessonButton } from "@/components/lesson/regenerate-lesson-button";
@@ -44,6 +45,22 @@ export default async function LessonPage({
   const focusCard = activeScene ? formatAwareCopy.focusCard(activeScene) : null;
   const actionBlock = activeScene ? formatAwareCopy.actionBlock?.(activeScene) : null;
   const checkpointBlock = activeScene ? formatAwareCopy.checkpointBlock?.(activeScene) : null;
+  const actionBlockCompleted =
+    activeScene && actionBlock
+      ? lesson.interactiveBlockProgress.some(
+          (entry) =>
+            entry.sceneId === activeScene.id && entry.blockKind === "action" && entry.completed,
+        )
+      : false;
+  const checkpointBlockCompleted =
+    activeScene && checkpointBlock
+      ? lesson.interactiveBlockProgress.some(
+          (entry) =>
+            entry.sceneId === activeScene.id &&
+            entry.blockKind === "checkpoint" &&
+            entry.completed,
+        )
+      : false;
 
   return (
     <main className="page-shell">
@@ -153,26 +170,30 @@ export default async function LessonPage({
                   </div>
                 ) : null}
                 {actionBlock ? (
-                  <div className={`interactive-format-card ${lesson.lessonFormat}`}>
-                    <p className="interactive-format-title">{actionBlock.title}</p>
-                    <p className="status-copy">{actionBlock.prompt}</p>
-                    <ol className="step-list interactive-format-list">
-                      {actionBlock.steps.map((step) => (
-                        <li key={step}>{step}</li>
-                      ))}
-                    </ol>
-                  </div>
+                  <InteractiveBlockCard
+                    lessonId={lesson.id}
+                    sceneId={activeScene.id}
+                    blockKind="action"
+                    lessonFormat={lesson.lessonFormat}
+                    title={actionBlock.title}
+                    prompt={actionBlock.prompt}
+                    items={actionBlock.steps}
+                    initialCompleted={actionBlockCompleted}
+                    listType="ordered"
+                  />
                 ) : null}
                 {checkpointBlock ? (
-                  <div className={`interactive-format-card ${lesson.lessonFormat}`}>
-                    <p className="interactive-format-title">{checkpointBlock.title}</p>
-                    <p className="status-copy">{checkpointBlock.prompt}</p>
-                    <ul className="meta-list interactive-format-list">
-                      {checkpointBlock.checks.map((check) => (
-                        <li key={check}>{check}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  <InteractiveBlockCard
+                    lessonId={lesson.id}
+                    sceneId={activeScene.id}
+                    blockKind="checkpoint"
+                    lessonFormat={lesson.lessonFormat}
+                    title={checkpointBlock.title}
+                    prompt={checkpointBlock.prompt}
+                    items={checkpointBlock.checks}
+                    initialCompleted={checkpointBlockCompleted}
+                    listType="unordered"
+                  />
                 ) : null}
                 {"content" in activeScene && activeScene.content && "summary" in activeScene.content ? (
                   <>

@@ -17,6 +17,7 @@ import {
   processLessonJob,
   processLessonSceneJob,
   regenerateLessonScene,
+  saveInteractiveBlockProgress,
   updateLessonOutline,
 } from "@/lib/server/lessons/lesson-service";
 
@@ -599,5 +600,68 @@ describe("lesson-service", () => {
     expect(updated?.outline[1]?.title).toBe("Wrap-up check");
 
     outlineSpy.mockRestore();
+  });
+
+  it("stores interactive block progress per scene", async () => {
+    vi.spyOn(outlineGenerator, "generateLessonOutline").mockResolvedValue({
+      title: "Workshop Thermodynamics",
+      outline: [
+        { title: "Hands-on segment", goal: "Practice the idea", sceneType: "lesson" },
+        { title: "Workshop checkpoint", goal: "Check understanding", sceneType: "quiz" },
+      ],
+    });
+    vi.spyOn(sceneGenerator, "generateLessonScene").mockResolvedValue({
+      title: "Hands-on segment",
+      summary: "This segment walks through the key idea as a workshop step.",
+      sections: [{ heading: "Try it", body: "Apply the concept actively." }],
+      keyTakeaways: ["Practice makes the step concrete"],
+    });
+    vi.spyOn(quizGenerator, "generateQuizScene").mockResolvedValue({
+      title: "Workshop checkpoint",
+      questions: [
+        {
+          id: "quiz-q4",
+          prompt: "What should you do after the workshop segment?",
+          type: "multiple_choice",
+          options: ["Check your understanding", "Delete the lesson", "Reset the database", "Close the app"],
+          correctIndex: 0,
+          explanation: "The checkpoint validates the workshop step before continuing.",
+        },
+      ],
+    });
+
+    const created = await createLessonJob(
+      {
+        prompt: "Teach me thermodynamics as a workshop",
+        language: "en",
+        lessonFormat: "workshop",
+      },
+      { autoProcess: false },
+    );
+    await processLessonJob(created.jobId);
+
+    const lesson = await getLessonById(created.lessonId);
+    const lessonScene = lesson?.scenes.find((scene) => scene.type === "lesson");
+    const quizScene = lesson?.scenes.find((scene) => scene.type === "quiz");
+
+    await saveInteractiveBlockProgress(created.lessonId, lessonScene!.id, "action", true);
+    await saveInteractiveBlockProgress(created.lessonId, quizScene!.id, "checkpoint", true);
+
+    const updatedLesson = await getLessonById(created.lessonId);
+
+    expect(updatedLesson?.interactiveBlockProgress).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sceneId: lessonScene!.id,
+          blockKind: "action",
+          completed: true,
+        }),
+        expect.objectContaining({
+          sceneId: quizScene!.id,
+          blockKind: "checkpoint",
+          completed: true,
+        }),
+      ]),
+    );
   });
 });
