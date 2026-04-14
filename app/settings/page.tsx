@@ -2,10 +2,12 @@ import Link from "next/link";
 import { SettingsForm } from "@/components/settings/model-settings-form";
 import { RuntimeBenchmarkCard } from "@/components/settings/runtime-benchmark-card";
 import { RuntimeComparisonCard } from "@/components/settings/runtime-comparison-card";
+import { RuntimeHistoryCard } from "@/components/settings/runtime-history-card";
 import { RuntimeTrendCard } from "@/components/settings/runtime-trend-card";
 import { getHardwareProfile } from "@/lib/runtime/hardware-profile";
 import { getRecommendedRuntimeSetup } from "@/lib/runtime/runtime-comparison";
 import { getRuntimeBenchmark } from "@/lib/runtime/runtime-benchmarking";
+import { getRuntimeHistory } from "@/lib/runtime/runtime-history";
 import { getHardwareAwareRuntimeRecommendation } from "@/lib/runtime/runtime-recommendations";
 import { getRuntimeTrend } from "@/lib/runtime/runtime-trends";
 import { getRuntimeComparison, getRuntimeUsageDashboard } from "@/lib/server/lessons/lesson-service";
@@ -24,6 +26,13 @@ export default async function SettingsPage() {
     hardwareProfile,
   );
   const benchmark = getRuntimeBenchmark(settings, runtimeDashboard);
+  const history = getRuntimeHistory(
+    {
+      provider: settings.provider,
+      model: settings.model,
+    },
+    runtimeDashboard.recentJobs,
+  );
   const recommendedSetup = getRecommendedRuntimeSetup(runtimeComparison);
   const trend = getRuntimeTrend(
     {
@@ -130,6 +139,7 @@ export default async function SettingsPage() {
 
           <RuntimeBenchmarkCard benchmark={benchmark} />
           <RuntimeTrendCard trend={trend} />
+          <RuntimeHistoryCard history={history} />
           <RuntimeComparisonCard items={runtimeComparison} />
         </aside>
       </section>
