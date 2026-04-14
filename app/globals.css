@@ -387,6 +387,34 @@ select {
   gap: 18px;
 }
 
+.format-focus-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(248, 250, 255, 0.92);
+}
+
+.format-focus-card.workshop {
+  background: linear-gradient(180deg, rgba(236, 248, 244, 0.95), rgba(255, 255, 255, 0.98));
+  border-color: rgba(19, 115, 51, 0.2);
+}
+
+.format-focus-card.guided_project {
+  background: linear-gradient(180deg, rgba(255, 245, 230, 0.96), rgba(255, 255, 255, 0.98));
+  border-color: rgba(181, 97, 17, 0.22);
+}
+
+.format-focus-title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.format-focus-list {
+  margin-top: 4px;
+}
+
 .scene-section {
   display: grid;
   gap: 8px;
