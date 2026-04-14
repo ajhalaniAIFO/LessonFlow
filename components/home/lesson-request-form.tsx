@@ -8,6 +8,7 @@ import {
   listTeachingStyles,
 } from "@/lib/server/lessons/personalization";
 import { listLessonFormats } from "@/lib/server/lessons/teaching-modes";
+import { getRuntimeRecommendation } from "@/lib/runtime/runtime-recommendations";
 import type { ApiResponse } from "@/types/api";
 import type { UploadRecord } from "@/types/upload";
 import type { GenerationMode, LearnerLevel, TeachingStyle, LessonFormat } from "@/types/lesson";
@@ -34,6 +35,7 @@ export function LessonRequestForm() {
   const extractedPreview =
     uploadSummary?.extractedText?.slice(0, 280).trim() ?? "";
   const extractedCharacterCount = uploadSummary?.extractedText?.length ?? 0;
+  const runtimeRecommendation = getRuntimeRecommendation(generationMode, lessonFormat);
 
   async function handleFileSelection(file: File | null) {
     setSelectedFile(file);
@@ -229,6 +231,16 @@ export function LessonRequestForm() {
         <span className="field-hint">
           {listLessonFormats().find((format) => format.id === lessonFormat)?.description}
         </span>
+      </div>
+
+      <div className="status-box">
+        <p className="status-title">{runtimeRecommendation.headline}</p>
+        <p className="status-copy">{runtimeRecommendation.summary}</p>
+        <ul className="meta-list" style={{ marginTop: "10px" }}>
+          {runtimeRecommendation.why.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
       </div>
 
       <div className="button-row">
