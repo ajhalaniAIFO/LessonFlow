@@ -24,6 +24,7 @@ export type HardwareAwareRuntimeRecommendation = RuntimeRecommendation & {
   hardwareSummary: string;
   fit: "comfortable" | "watch" | "strained";
   caution?: string;
+  accelerationHint: string;
 };
 
 function resolveWorkloadClass(
@@ -155,14 +156,25 @@ export function getHardwareAwareRuntimeRecommendation(
   hardwareProfile: HardwareProfile,
 ): HardwareAwareRuntimeRecommendation {
   const base = getRuntimeRecommendation(generationMode, lessonFormat);
-  const fit = getHardwareFit(base.workloadClass, hardwareProfile.tier);
+  const initialFit = getHardwareFit(base.workloadClass, hardwareProfile.tier);
+  const fit =
+    hardwareProfile.likelyGpuAvailable && initialFit === "strained"
+      ? "watch"
+      : initialFit;
   const hardwareSummary = `${hardwareProfile.cpuCores} CPU cores, ${hardwareProfile.totalMemoryGb} GB RAM, ${hardwareProfile.platform}`;
+  const accelerationHint = hardwareProfile.likelyGpuAvailable
+    ? hardwareProfile.gpuNames.length > 0
+      ? `Likely GPU acceleration available: ${hardwareProfile.gpuNames.join(", ")}.`
+      : "Likely GPU acceleration available."
+    : "No likely accelerated GPU detected. Expect CPU-heavy local generation.";
 
   const caution =
     fit === "strained"
       ? "This lesson setup may feel slow on this machine. Consider fast mode, a standard lesson format, or a smaller instruct model."
       : fit === "watch"
-        ? "This setup should work, but slower scene generation or larger models may start to feel heavy."
+        ? hardwareProfile.likelyGpuAvailable
+          ? "This setup should work, but larger models or detailed project flows may still feel heavy even with likely GPU acceleration."
+          : "This setup should work, but slower scene generation or larger models may start to feel heavy."
         : undefined;
 
   return {
@@ -171,5 +183,6 @@ export function getHardwareAwareRuntimeRecommendation(
     hardwareSummary,
     fit,
     caution,
+    accelerationHint,
   };
 }
