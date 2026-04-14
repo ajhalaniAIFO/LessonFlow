@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getRuntimeComparisonSummary } from "@/lib/runtime/runtime-comparison";
+import { getRecommendedRuntimeSetup, getRuntimeComparisonSummary } from "@/lib/runtime/runtime-comparison";
 import type { RuntimeComparisonItem } from "@/types/job";
 
 describe("runtime-comparison", () => {
@@ -26,5 +26,23 @@ describe("runtime-comparison", () => {
 
     expect(summary.best?.runtimeModel).toBe("llama3:latest");
     expect(summary.summary).toContain("llama3:latest");
+  });
+
+  it("returns the first ranked item as the recommended setup", () => {
+    const recommended = getRecommendedRuntimeSetup([
+      {
+        runtimeProvider: "openai_compatible",
+        runtimeModel: "google/gemma-3-4b-it",
+        completedJobs: 2,
+        averageTotalMs: 10_000,
+        fastestTotalMs: 9_000,
+        slowestTotalMs: 11_000,
+      },
+    ]);
+
+    expect(recommended).toEqual({
+      provider: "openai_compatible",
+      model: "google/gemma-3-4b-it",
+    });
   });
 });

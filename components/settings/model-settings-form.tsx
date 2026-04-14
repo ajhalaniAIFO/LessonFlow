@@ -29,9 +29,10 @@ type TestResult = {
 
 type FormProps = {
   initialSettings: ModelSettings;
+  recommendedSettings?: Partial<ModelSettings>;
 };
 
-export function SettingsForm({ initialSettings }: FormProps) {
+export function SettingsForm({ initialSettings, recommendedSettings }: FormProps) {
   const [form, setForm] = useState<ModelSettings>(initialSettings);
   const [modelOptions, setModelOptions] = useState<ModelInfo[]>([]);
   const [status, setStatus] = useState<StatusState | null>(null);
@@ -60,6 +61,23 @@ export function SettingsForm({ initialSettings }: FormProps) {
       ...current,
       [key]: value,
     }));
+  }
+
+  function applyRecommendedSettings() {
+    if (!recommendedSettings) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      ...recommendedSettings,
+    }));
+    setStatus({
+      tone: "success",
+      title: "Recommended setup applied",
+      message: "We copied the strongest recent provider/model pairing into the form. Save settings to keep it.",
+    });
+    setDiagnostics(null);
   }
 
   async function handleSave() {
@@ -256,6 +274,11 @@ export function SettingsForm({ initialSettings }: FormProps) {
         <button className="button primary" disabled={isSaving} onClick={handleSave} type="button">
           {isSaving ? "Saving..." : "Save settings"}
         </button>
+        {recommendedSettings?.provider && recommendedSettings?.model ? (
+          <button className="button secondary" onClick={applyRecommendedSettings} type="button">
+            Apply recommended setup
+          </button>
+        ) : null}
         <button
           className="button secondary"
           disabled={isTesting}
