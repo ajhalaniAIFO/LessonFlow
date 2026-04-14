@@ -55,6 +55,7 @@ export default async function SettingsPage() {
           <p className="field-hint">
             Hardware profile: {balancedStandardRecommendation.hardwareSummary} ({balancedStandardRecommendation.hardwareTier})
           </p>
+          <p className="field-hint">{balancedStandardRecommendation.accelerationHint}</p>
           <ul className="meta-list">
             <li>
               Recommended URL for this provider:{" "}

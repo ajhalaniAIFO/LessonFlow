@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { resolveHardwareTier } from "@/lib/runtime/hardware-profile";
+import {
+  isLikelyAcceleratedGpuName,
+  resolveHardwareTier,
+} from "@/lib/runtime/hardware-profile";
 
 describe("hardware-profile", () => {
   it("classifies entry hardware", () => {
@@ -12,5 +15,11 @@ describe("hardware-profile", () => {
 
   it("classifies strong hardware", () => {
     expect(resolveHardwareTier({ cpuCores: 12, totalMemoryGb: 32 })).toBe("strong");
+  });
+
+  it("recognizes likely accelerated GPU names", () => {
+    expect(isLikelyAcceleratedGpuName("NVIDIA GeForce RTX 4070")).toBe(true);
+    expect(isLikelyAcceleratedGpuName("AMD Radeon RX 7800 XT")).toBe(true);
+    expect(isLikelyAcceleratedGpuName("Microsoft Basic Display Adapter")).toBe(false);
   });
 });

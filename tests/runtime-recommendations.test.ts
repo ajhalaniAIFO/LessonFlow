@@ -30,9 +30,26 @@ describe("runtime-recommendations", () => {
       totalMemoryGb: 8,
       platform: "win32",
       tier: "entry",
+      likelyGpuAvailable: false,
+      gpuNames: [],
     });
 
     expect(recommendation.fit).toBe("strained");
     expect(recommendation.caution).toContain("may feel slow");
+    expect(recommendation.accelerationHint).toContain("CPU-heavy");
+  });
+
+  it("softens a strained recommendation when likely GPU acceleration is available", () => {
+    const recommendation = getHardwareAwareRuntimeRecommendation("detailed", "guided_project", {
+      cpuCores: 4,
+      totalMemoryGb: 8,
+      platform: "win32",
+      tier: "entry",
+      likelyGpuAvailable: true,
+      gpuNames: ["NVIDIA GeForce RTX 4070"],
+    });
+
+    expect(recommendation.fit).toBe("watch");
+    expect(recommendation.accelerationHint).toContain("RTX 4070");
   });
 });

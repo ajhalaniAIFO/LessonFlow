@@ -248,6 +248,7 @@ export function LessonRequestForm({ hardwareProfile }: Props) {
         <p className="field-hint" style={{ marginTop: "8px" }}>
           Hardware profile: {runtimeRecommendation.hardwareSummary} ({runtimeRecommendation.hardwareTier})
         </p>
+        <p className="field-hint">{runtimeRecommendation.accelerationHint}</p>
         <ul className="meta-list" style={{ marginTop: "10px" }}>
           {runtimeRecommendation.why.map((item) => (
             <li key={item}>{item}</li>
