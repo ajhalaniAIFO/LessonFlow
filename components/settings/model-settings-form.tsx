@@ -12,10 +12,19 @@ type StatusState = {
 };
 
 type TestResult = {
-  provider: string;
-  serverReachable: boolean;
-  modelAvailable: boolean;
-  message: string;
+  health: {
+    provider: string;
+    serverReachable: boolean;
+    modelAvailable: boolean;
+    message: string;
+    endpointPath?: string;
+    availableModelCount?: number;
+    availableModelsPreview?: string[];
+  };
+  hardwareSummary: string;
+  accelerationHint: string;
+  workloadFit: "comfortable" | "watch" | "strained";
+  nextSteps: string[];
 };
 
 type FormProps = {
@@ -26,6 +35,7 @@ export function SettingsForm({ initialSettings }: FormProps) {
   const [form, setForm] = useState<ModelSettings>(initialSettings);
   const [modelOptions, setModelOptions] = useState<ModelInfo[]>([]);
   const [status, setStatus] = useState<StatusState | null>(null);
+  const [diagnostics, setDiagnostics] = useState<TestResult | null>(null);
   const [isSaving, startSaving] = useTransition();
   const [isTesting, startTesting] = useTransition();
   const [isLoadingModels, startLoadingModels] = useTransition();
@@ -54,6 +64,7 @@ export function SettingsForm({ initialSettings }: FormProps) {
 
   async function handleSave() {
     setStatus(null);
+    setDiagnostics(null);
     startSaving(async () => {
       const response = await fetch("/api/settings/model", {
         method: "PUT",
@@ -85,6 +96,7 @@ export function SettingsForm({ initialSettings }: FormProps) {
 
   async function handleTest() {
     setStatus(null);
+    setDiagnostics(null);
     startTesting(async () => {
       const response = await fetch("/api/settings/model/test", {
         method: "POST",
@@ -105,22 +117,24 @@ export function SettingsForm({ initialSettings }: FormProps) {
         return;
       }
 
+      setDiagnostics(payload.data);
       setStatus({
         tone:
-          payload.data.serverReachable && payload.data.modelAvailable
+          payload.data.health.serverReachable && payload.data.health.modelAvailable
             ? "success"
             : "error",
         title:
-          payload.data.serverReachable && payload.data.modelAvailable
+          payload.data.health.serverReachable && payload.data.health.modelAvailable
             ? "Connection successful"
             : "Connection needs attention",
-        message: payload.data.message,
+        message: payload.data.health.message,
       });
     });
   }
 
   async function handleLoadModels() {
     setStatus(null);
+    setDiagnostics(null);
     const query = new URLSearchParams({
       baseUrl: form.baseUrl,
       provider: form.provider,
@@ -264,6 +278,37 @@ export function SettingsForm({ initialSettings }: FormProps) {
         <div className={`status-box ${status.tone}`}>
           <p className="status-title">{status.title}</p>
           <p className="status-copy">{status.message}</p>
+        </div>
+      ) : null}
+
+      {diagnostics ? (
+        <div className="status-box">
+          <p className="status-title">Runtime diagnostics</p>
+          <p className="status-copy">Hardware: {diagnostics.hardwareSummary}</p>
+          <p className="status-copy">{diagnostics.accelerationHint}</p>
+          {diagnostics.health.endpointPath ? (
+            <p className="status-copy">
+              Checked endpoint: <span className="code-inline">{diagnostics.health.endpointPath}</span>
+            </p>
+          ) : null}
+          {typeof diagnostics.health.availableModelCount === "number" ? (
+            <p className="status-copy">
+              Models reported by runtime: {diagnostics.health.availableModelCount}
+            </p>
+          ) : null}
+          {diagnostics.health.availableModelsPreview?.length ? (
+            <p className="status-copy">
+              Preview: {diagnostics.health.availableModelsPreview.join(", ")}
+            </p>
+          ) : null}
+          <p className="status-copy">
+            Workload fit: <strong>{diagnostics.workloadFit}</strong>
+          </p>
+          <ul className="meta-list">
+            {diagnostics.nextSteps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ul>
         </div>
       ) : null}
     </div>

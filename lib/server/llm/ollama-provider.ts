@@ -114,6 +114,7 @@ export class OllamaProvider implements LLMProvider {
           serverReachable: false,
           modelAvailable: false,
           message: `Ollama responded with HTTP ${response.status}.`,
+          endpointPath: "/api/tags",
         };
       }
 
@@ -125,6 +126,9 @@ export class OllamaProvider implements LLMProvider {
         provider: "ollama",
         serverReachable: true,
         modelAvailable,
+        endpointPath: "/api/tags",
+        availableModelCount: availableModels.length,
+        availableModelsPreview: availableModels.slice(0, 3),
         message: modelAvailable
           ? `Connected successfully. Model "${model}" is available.`
           : model.trim().length === 0
@@ -138,6 +142,7 @@ export class OllamaProvider implements LLMProvider {
         serverReachable: false,
         modelAvailable: false,
         message: "Could not reach the local Ollama runtime. Confirm that it is running.",
+        endpointPath: "/api/tags",
       };
     }
   }
