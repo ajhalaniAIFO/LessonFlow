@@ -48,6 +48,11 @@ export function runMigrations(db: Database.Database) {
     db.exec("ALTER TABLE lessons ADD COLUMN teaching_style TEXT NOT NULL DEFAULT 'practical';");
   }
 
+  const hasLessonFormat = lessonColumns.some((column) => column.name === "lesson_format");
+  if (!hasLessonFormat) {
+    db.exec("ALTER TABLE lessons ADD COLUMN lesson_format TEXT NOT NULL DEFAULT 'standard';");
+  }
+
   const chatMessageColumns = db
     .prepare("PRAGMA table_info(chat_messages)")
     .all() as Array<{ name: string }>;

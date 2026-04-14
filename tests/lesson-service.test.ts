@@ -41,6 +41,7 @@ describe("lesson-service", () => {
     expect(result.generationMode).toBe("balanced");
     expect(result.learnerLevel).toBe("intermediate");
     expect(result.teachingStyle).toBe("practical");
+    expect(result.lessonFormat).toBe("standard");
   });
 
   it("creates a lesson and job record", async () => {
@@ -102,6 +103,7 @@ describe("lesson-service", () => {
     expect(lesson?.generationMode).toBe("balanced");
     expect(lesson?.learnerLevel).toBe("intermediate");
     expect(lesson?.teachingStyle).toBe("practical");
+    expect(lesson?.lessonFormat).toBe("standard");
     expect(lesson?.outline).toHaveLength(3);
     expect(lesson?.scenes).toHaveLength(3);
     expect(lesson?.scenes[0]?.title).toBe("What Thermodynamics Studies");
@@ -147,6 +149,7 @@ describe("lesson-service", () => {
     expect(parsed.generationMode).toBe("balanced");
     expect(parsed.learnerLevel).toBe("intermediate");
     expect(parsed.teachingStyle).toBe("practical");
+    expect(parsed.lessonFormat).toBe("standard");
   });
 
   it("persists the selected generation mode on the lesson", async () => {
@@ -184,6 +187,7 @@ describe("lesson-service", () => {
         generationMode: "detailed",
         learnerLevel: "beginner",
         teachingStyle: "step_by_step",
+        lessonFormat: "guided_project",
       },
       { autoProcess: false },
     );
@@ -194,6 +198,7 @@ describe("lesson-service", () => {
     expect(lesson?.generationMode).toBe("detailed");
     expect(lesson?.learnerLevel).toBe("beginner");
     expect(lesson?.teachingStyle).toBe("step_by_step");
+    expect(lesson?.lessonFormat).toBe("guided_project");
   });
 
   it("creates a regeneration job for an existing lesson", async () => {

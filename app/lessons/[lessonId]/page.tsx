@@ -68,6 +68,9 @@ export default async function LessonPage({
         <p className="status-copy">
           Learner level: <strong>{lesson.learnerLevel}</strong> | Teaching style: <strong>{lesson.teachingStyle}</strong>
         </p>
+        <p className="status-copy">
+          Lesson format: <strong>{lesson.lessonFormat}</strong>
+        </p>
         <div className="button-row">
           <RegenerateLessonButton lessonId={lesson.id} variant="primary" />
         </div>

@@ -70,6 +70,7 @@ describe("chat-service", () => {
       generationMode: "balanced",
       learnerLevel: "beginner",
       teachingStyle: "step_by_step",
+      lessonFormat: "workshop",
       status: "ready",
       outline: [
         { id: "outline-1", title: "Core concepts", sceneType: "lesson", order: 1 },
@@ -129,6 +130,7 @@ describe("chat-service", () => {
     const requestBody = requestInit?.body ? JSON.parse(String(requestInit.body)) : {};
     expect(requestBody.prompt).toContain("Learner level: Beginner");
     expect(requestBody.prompt).toContain("Teaching style: Step-by-step");
+    expect(requestBody.prompt).toContain("Lesson format: Workshop");
     expect(requestBody.prompt).toContain("Current scene: Core concepts");
     expect(requestBody.prompt).toContain("Current scene summary: Thermodynamics connects energy, heat, and work.");
   });
