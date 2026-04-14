@@ -31,4 +31,15 @@ describe("format-aware-ui", () => {
     expect(focusCard.title).toBe("Project step");
     expect(focusCard.copy).toContain("build step");
   });
+
+  it("returns workshop action and checkpoint blocks", () => {
+    const workshop = getFormatAwareCopy("workshop");
+    const actionBlock = workshop.actionBlock?.(makeScene("lesson"));
+    const checkpointBlock = workshop.checkpointBlock?.(makeScene("quiz"));
+
+    expect(actionBlock?.title).toBe("Do this now");
+    expect(actionBlock?.steps[0]).toContain("Core practice");
+    expect(checkpointBlock?.title).toBe("Checkpoint");
+    expect(checkpointBlock?.checks[0]).toContain("Checkpoint");
+  });
 });

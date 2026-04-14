@@ -415,6 +415,34 @@ select {
   margin-top: 4px;
 }
 
+.interactive-format-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px dashed rgba(32, 82, 214, 0.26);
+  background: rgba(231, 239, 255, 0.45);
+}
+
+.interactive-format-card.workshop {
+  border-color: rgba(19, 115, 51, 0.28);
+  background: rgba(236, 248, 244, 0.82);
+}
+
+.interactive-format-card.guided_project {
+  border-color: rgba(181, 97, 17, 0.3);
+  background: rgba(255, 245, 230, 0.84);
+}
+
+.interactive-format-title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.interactive-format-list {
+  margin-top: 4px;
+}
+
 .scene-section {
   display: grid;
   gap: 8px;
