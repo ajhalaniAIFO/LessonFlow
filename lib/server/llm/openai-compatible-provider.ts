@@ -56,6 +56,7 @@ export class OpenAICompatibleProvider implements LLMProvider {
           serverReachable: false,
           modelAvailable: false,
           message: `OpenAI-compatible runtime responded with HTTP ${response.status}.`,
+          endpointPath: "/models",
         };
       }
 
@@ -67,6 +68,9 @@ export class OpenAICompatibleProvider implements LLMProvider {
         provider: "openai_compatible",
         serverReachable: true,
         modelAvailable,
+        endpointPath: "/models",
+        availableModelCount: availableModels.length,
+        availableModelsPreview: availableModels.slice(0, 3),
         message: modelAvailable
           ? `Connected successfully. Model "${model}" is available.`
           : model.trim().length === 0
@@ -80,6 +84,7 @@ export class OpenAICompatibleProvider implements LLMProvider {
         serverReachable: false,
         modelAvailable: false,
         message: "Could not reach the local OpenAI-compatible runtime. Confirm that it is running.",
+        endpointPath: "/models",
       };
     }
   }

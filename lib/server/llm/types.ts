@@ -3,6 +3,9 @@ export type HealthStatus = {
   serverReachable: boolean;
   modelAvailable: boolean;
   message: string;
+  endpointPath?: string;
+  availableModelCount?: number;
+  availableModelsPreview?: string[];
 };
 
 export type ModelInfo = {
