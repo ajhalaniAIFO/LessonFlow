@@ -62,3 +62,13 @@ export type RuntimeTrendSample = {
   updatedAt: number;
   totalMs: number;
 };
+
+export type RuntimeHistoryEntry = {
+  jobId: string;
+  lessonId: string;
+  lessonTitle: string;
+  updatedAt: number;
+  totalMs: number;
+  lessonSceneCount?: number;
+  quizSceneCount?: number;
+};

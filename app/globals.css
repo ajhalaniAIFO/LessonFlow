@@ -303,6 +303,28 @@ select {
   margin-top: 14px;
 }
 
+.runtime-history-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.runtime-history-row {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: rgba(248, 250, 255, 0.88);
+}
+
+@media (min-width: 860px) {
+  .runtime-history-row {
+    grid-template-columns: minmax(0, 1.7fr) auto;
+    align-items: center;
+  }
+}
+
 .runtime-comparison-row {
   display: grid;
   gap: 10px;
