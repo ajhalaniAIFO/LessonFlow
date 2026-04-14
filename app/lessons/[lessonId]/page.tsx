@@ -42,6 +42,8 @@ export default async function LessonPage({
   const generationMode = getGenerationModeDefinition(lesson.generationMode);
   const formatAwareCopy = getFormatAwareCopy(lesson.lessonFormat);
   const focusCard = activeScene ? formatAwareCopy.focusCard(activeScene) : null;
+  const actionBlock = activeScene ? formatAwareCopy.actionBlock?.(activeScene) : null;
+  const checkpointBlock = activeScene ? formatAwareCopy.checkpointBlock?.(activeScene) : null;
 
   return (
     <main className="page-shell">
@@ -146,6 +148,28 @@ export default async function LessonPage({
                     <ul className="meta-list format-focus-list">
                       {focusCard.bullets.map((bullet) => (
                         <li key={bullet}>{bullet}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {actionBlock ? (
+                  <div className={`interactive-format-card ${lesson.lessonFormat}`}>
+                    <p className="interactive-format-title">{actionBlock.title}</p>
+                    <p className="status-copy">{actionBlock.prompt}</p>
+                    <ol className="step-list interactive-format-list">
+                      {actionBlock.steps.map((step) => (
+                        <li key={step}>{step}</li>
+                      ))}
+                    </ol>
+                  </div>
+                ) : null}
+                {checkpointBlock ? (
+                  <div className={`interactive-format-card ${lesson.lessonFormat}`}>
+                    <p className="interactive-format-title">{checkpointBlock.title}</p>
+                    <p className="status-copy">{checkpointBlock.prompt}</p>
+                    <ul className="meta-list interactive-format-list">
+                      {checkpointBlock.checks.map((check) => (
+                        <li key={check}>{check}</li>
                       ))}
                     </ul>
                   </div>

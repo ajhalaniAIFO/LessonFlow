@@ -12,6 +12,16 @@ type FormatCopy = {
     copy: string;
     bullets: string[];
   };
+  actionBlock?: (scene: Scene) => {
+    title: string;
+    prompt: string;
+    steps: string[];
+  } | null;
+  checkpointBlock?: (scene: Scene) => {
+    title: string;
+    prompt: string;
+    checks: string[];
+  } | null;
 };
 
 const formatCopy: Record<LessonFormat, FormatCopy> = {
@@ -32,6 +42,8 @@ const formatCopy: Record<LessonFormat, FormatCopy> = {
           ? ["Read for understanding first", "Use key takeaways as a recap", "Move on when the main idea feels clear"]
           : ["Answer from memory first", "Use the explanation to correct gaps", "Continue once the core idea is solid"],
     }),
+    actionBlock: () => null,
+    checkpointBlock: () => null,
   },
   workshop: {
     heroEyebrow: "Workshop Ready",
@@ -50,6 +62,30 @@ const formatCopy: Record<LessonFormat, FormatCopy> = {
           ? ["Read the segment once", "Try to restate the move in your own words", "Connect it to a practical example before advancing"]
           : ["Answer without peeking", "Review the explanation carefully", "Return to the prior segment if the checkpoint feels shaky"],
     }),
+    actionBlock: (scene) =>
+      scene.type === "lesson"
+        ? {
+            title: "Do this now",
+            prompt: "Turn this workshop segment into action before you move on.",
+            steps: [
+              `Summarize "${scene.title}" in one or two sentences.`,
+              "Write down one practical example or use case that fits this segment.",
+              "Identify one question you would ask if you were facilitating this workshop live.",
+            ],
+          }
+        : null,
+    checkpointBlock: (scene) =>
+      scene.type === "quiz"
+        ? {
+            title: "Checkpoint",
+            prompt: "Use this checkpoint to decide whether you are ready for the next workshop move.",
+            checks: [
+              `Can you explain what "${scene.title}" is testing without looking back?`,
+              "Can you connect the quiz prompt to a practical scenario?",
+              "If one answer felt shaky, can you name exactly what to review before continuing?",
+            ],
+          }
+        : null,
   },
   guided_project: {
     heroEyebrow: "Project Ready",
@@ -68,6 +104,30 @@ const formatCopy: Record<LessonFormat, FormatCopy> = {
           ? ["Identify what this step is trying to build", "Note the key decision or skill in this step", "Carry that forward into the next scene"]
           : ["Check whether you can explain the step outcome", "Use the feedback to close any gap", "Advance only when the project flow makes sense"],
     }),
+    actionBlock: (scene) =>
+      scene.type === "lesson"
+        ? {
+            title: "Build step",
+            prompt: "Treat this scene like a project step with an explicit outcome.",
+            steps: [
+              `State the outcome this step should unlock in "${scene.title}".`,
+              "Note the key decision, concept, or skill needed for this step.",
+              "Write one sign that you are ready to move to the next build step.",
+            ],
+          }
+        : null,
+    checkpointBlock: (scene) =>
+      scene.type === "quiz"
+        ? {
+            title: "Project checkpoint",
+            prompt: "Use this checkpoint to confirm the project step is solid before moving forward.",
+            checks: [
+              `Can you explain how "${scene.title}" supports the overall project arc?`,
+              "Can you name the most important idea from the prior build step from memory?",
+              "If you missed a question, what exact project step needs reinforcement?",
+            ],
+          }
+        : null,
   },
 };
 
