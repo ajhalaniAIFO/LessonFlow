@@ -8,7 +8,8 @@ import {
   listTeachingStyles,
 } from "@/lib/server/lessons/personalization";
 import { listLessonFormats } from "@/lib/server/lessons/teaching-modes";
-import { getRuntimeRecommendation } from "@/lib/runtime/runtime-recommendations";
+import type { HardwareProfile } from "@/lib/runtime/hardware-profile";
+import { getHardwareAwareRuntimeRecommendation } from "@/lib/runtime/runtime-recommendations";
 import type { ApiResponse } from "@/types/api";
 import type { UploadRecord } from "@/types/upload";
 import type { GenerationMode, LearnerLevel, TeachingStyle, LessonFormat } from "@/types/lesson";
@@ -18,7 +19,11 @@ type CreateLessonResult = {
   jobId: string;
 };
 
-export function LessonRequestForm() {
+type Props = {
+  hardwareProfile: HardwareProfile;
+};
+
+export function LessonRequestForm({ hardwareProfile }: Props) {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
   const [language, setLanguage] = useState("en");
@@ -35,7 +40,11 @@ export function LessonRequestForm() {
   const extractedPreview =
     uploadSummary?.extractedText?.slice(0, 280).trim() ?? "";
   const extractedCharacterCount = uploadSummary?.extractedText?.length ?? 0;
-  const runtimeRecommendation = getRuntimeRecommendation(generationMode, lessonFormat);
+  const runtimeRecommendation = getHardwareAwareRuntimeRecommendation(
+    generationMode,
+    lessonFormat,
+    hardwareProfile,
+  );
 
   async function handleFileSelection(file: File | null) {
     setSelectedFile(file);
@@ -236,11 +245,24 @@ export function LessonRequestForm() {
       <div className="status-box">
         <p className="status-title">{runtimeRecommendation.headline}</p>
         <p className="status-copy">{runtimeRecommendation.summary}</p>
+        <p className="field-hint" style={{ marginTop: "8px" }}>
+          Hardware profile: {runtimeRecommendation.hardwareSummary} ({runtimeRecommendation.hardwareTier})
+        </p>
         <ul className="meta-list" style={{ marginTop: "10px" }}>
           {runtimeRecommendation.why.map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>
+        {runtimeRecommendation.caution ? (
+          <div className={`status-box ${runtimeRecommendation.fit === "strained" ? "error" : ""}`}>
+            <p className="status-title">
+              {runtimeRecommendation.fit === "strained"
+                ? "This setup may feel heavy"
+                : "Watch local runtime load"}
+            </p>
+            <p className="status-copy">{runtimeRecommendation.caution}</p>
+          </div>
+        ) : null}
       </div>
 
       <div className="button-row">

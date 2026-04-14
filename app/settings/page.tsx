@@ -1,13 +1,19 @@
 import Link from "next/link";
 import { SettingsForm } from "@/components/settings/model-settings-form";
-import { getRuntimeRecommendation } from "@/lib/runtime/runtime-recommendations";
+import { getHardwareProfile } from "@/lib/runtime/hardware-profile";
+import { getHardwareAwareRuntimeRecommendation } from "@/lib/runtime/runtime-recommendations";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const settings = await getModelSettings();
-  const balancedStandardRecommendation = getRuntimeRecommendation("balanced", "standard");
+  const hardwareProfile = getHardwareProfile();
+  const balancedStandardRecommendation = getHardwareAwareRuntimeRecommendation(
+    "balanced",
+    "standard",
+    hardwareProfile,
+  );
   const providerTip = balancedStandardRecommendation.providerTips[settings.provider];
 
   return (
@@ -46,6 +52,9 @@ export default async function SettingsPage() {
         <aside className="card">
           <h3>Recommendation hints</h3>
           <p className="status-copy">{balancedStandardRecommendation.summary}</p>
+          <p className="field-hint">
+            Hardware profile: {balancedStandardRecommendation.hardwareSummary} ({balancedStandardRecommendation.hardwareTier})
+          </p>
           <ul className="meta-list">
             <li>
               Recommended URL for this provider:{" "}
@@ -69,6 +78,16 @@ export default async function SettingsPage() {
             </li>
             <li>No cloud API key is required for this setup.</li>
           </ul>
+          {balancedStandardRecommendation.caution ? (
+            <div className={`status-box ${balancedStandardRecommendation.fit === "strained" ? "error" : ""}`}>
+              <p className="status-title">
+                {balancedStandardRecommendation.fit === "strained"
+                  ? "This machine may be stretched"
+                  : "Watch local runtime load"}
+              </p>
+              <p className="status-copy">{balancedStandardRecommendation.caution}</p>
+            </div>
+          ) : null}
         </aside>
       </section>
     </main>

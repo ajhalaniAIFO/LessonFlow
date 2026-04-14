@@ -2,11 +2,13 @@ import Link from "next/link";
 import { LessonLibrary } from "@/components/home/lesson-library";
 import { LessonRequestForm } from "@/components/home/lesson-request-form";
 import { listLessons } from "@/lib/server/lessons/lesson-service";
+import { getHardwareProfile } from "@/lib/runtime/hardware-profile";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const lessons = await listLessons();
+  const hardwareProfile = getHardwareProfile();
 
   return (
     <main className="page-shell">
@@ -38,7 +40,7 @@ export default async function HomePage() {
       <section className="card-grid">
         <article className="card">
           <h2>Start the next milestone</h2>
-          <LessonRequestForm />
+          <LessonRequestForm hardwareProfile={hardwareProfile} />
         </article>
 
         <aside className="card">

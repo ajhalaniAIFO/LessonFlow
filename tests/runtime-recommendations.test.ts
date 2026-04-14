@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getRuntimeRecommendation } from "@/lib/runtime/runtime-recommendations";
+import { getHardwareAwareRuntimeRecommendation, getRuntimeRecommendation } from "@/lib/runtime/runtime-recommendations";
 
 describe("runtime-recommendations", () => {
   it("returns a light recommendation for fast standard lessons", () => {
@@ -22,5 +22,17 @@ describe("runtime-recommendations", () => {
     expect(recommendation.workloadClass).toBe("heavy");
     expect(recommendation.headline).toContain("Heavier");
     expect(recommendation.providerTips.ollama.hint).toContain("GPU");
+  });
+
+  it("adds a caution when the workload is heavy for entry hardware", () => {
+    const recommendation = getHardwareAwareRuntimeRecommendation("detailed", "guided_project", {
+      cpuCores: 4,
+      totalMemoryGb: 8,
+      platform: "win32",
+      tier: "entry",
+    });
+
+    expect(recommendation.fit).toBe("strained");
+    expect(recommendation.caution).toContain("may feel slow");
   });
 });
