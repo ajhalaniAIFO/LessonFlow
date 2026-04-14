@@ -8,3 +8,19 @@ export type ModelSettings = {
   maxTokens: number;
   timeoutMs: number;
 };
+
+export type SyntheticBenchmarkStatus = "success" | "error";
+
+export type SyntheticBenchmarkRecord = {
+  id: string;
+  provider: ModelProvider;
+  model: string;
+  baseUrl: string;
+  benchmarkKind: "smoke_prompt";
+  status: SyntheticBenchmarkStatus;
+  durationMs?: number;
+  outputChars?: number;
+  outputPreview?: string;
+  errorMessage?: string;
+  createdAt: number;
+};

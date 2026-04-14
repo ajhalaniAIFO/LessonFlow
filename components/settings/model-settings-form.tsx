@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import type { ModelInfo } from "@/lib/server/llm/types";
 import type { ApiResponse } from "@/types/api";
-import type { ModelSettings } from "@/types/settings";
+import type { ModelSettings, SyntheticBenchmarkRecord } from "@/types/settings";
 
 type StatusState = {
   tone: "success" | "error";
@@ -40,6 +40,8 @@ export function SettingsForm({ initialSettings, recommendedSettings }: FormProps
   const [isSaving, startSaving] = useTransition();
   const [isTesting, startTesting] = useTransition();
   const [isLoadingModels, startLoadingModels] = useTransition();
+  const [isBenchmarking, startBenchmarking] = useTransition();
+  const [benchmarkResult, setBenchmarkResult] = useState<SyntheticBenchmarkRecord | null>(null);
 
   const selectedModelKnown = useMemo(
     () => modelOptions.some((model) => model.id === form.model),
@@ -78,6 +80,7 @@ export function SettingsForm({ initialSettings, recommendedSettings }: FormProps
       message: "We copied the strongest recent provider/model pairing into the form. Save settings to keep it.",
     });
     setDiagnostics(null);
+    setBenchmarkResult(null);
   }
 
   async function handleSave() {
@@ -181,6 +184,45 @@ export function SettingsForm({ initialSettings, recommendedSettings }: FormProps
                 payload.data.models.length === 1 ? "" : "s"
               }.`
             : "No local models were returned. You can still type one manually.",
+      });
+    });
+  }
+
+  async function handleBenchmark() {
+    setStatus(null);
+    setDiagnostics(null);
+    setBenchmarkResult(null);
+    startBenchmarking(async () => {
+      const response = await fetch("/api/settings/model/benchmark", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
+
+      const payload = (await response.json()) as ApiResponse<SyntheticBenchmarkRecord>;
+
+      if (!payload.success) {
+        setStatus({
+          tone: "error",
+          title: "Benchmark failed",
+          message: payload.error.message,
+        });
+        return;
+      }
+
+      setBenchmarkResult(payload.data);
+      setStatus({
+        tone: payload.data.status === "success" ? "success" : "error",
+        title:
+          payload.data.status === "success"
+            ? "Synthetic benchmark complete"
+            : "Synthetic benchmark finished with an error",
+        message:
+          payload.data.status === "success"
+            ? "The runtime completed a short controlled prompt so you can compare its direct response speed."
+            : payload.data.errorMessage ?? "The runtime could not complete the synthetic benchmark.",
       });
     });
   }
@@ -295,6 +337,14 @@ export function SettingsForm({ initialSettings, recommendedSettings }: FormProps
         >
           {isLoadingModels ? "Loading..." : "Load models"}
         </button>
+        <button
+          className="button secondary"
+          disabled={isBenchmarking}
+          onClick={handleBenchmark}
+          type="button"
+        >
+          {isBenchmarking ? "Benchmarking..." : "Run benchmark"}
+        </button>
       </div>
 
       {status ? (
@@ -332,6 +382,24 @@ export function SettingsForm({ initialSettings, recommendedSettings }: FormProps
               <li key={step}>{step}</li>
             ))}
           </ul>
+        </div>
+      ) : null}
+
+      {benchmarkResult ? (
+        <div className={`status-box ${benchmarkResult.status === "success" ? "success" : "error"}`}>
+          <p className="status-title">Latest synthetic benchmark</p>
+          <p className="status-copy">
+            {benchmarkResult.provider} | {benchmarkResult.model}
+          </p>
+          <p className="status-copy">
+            Duration: {benchmarkResult.durationMs ?? "n/a"} ms
+          </p>
+          {benchmarkResult.outputPreview ? (
+            <p className="status-copy">Preview: {benchmarkResult.outputPreview}</p>
+          ) : null}
+          {benchmarkResult.errorMessage ? (
+            <p className="status-copy">Error: {benchmarkResult.errorMessage}</p>
+          ) : null}
         </div>
       ) : null}
     </div>
