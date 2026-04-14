@@ -2,10 +2,12 @@ import Link from "next/link";
 import { SettingsForm } from "@/components/settings/model-settings-form";
 import { RuntimeBenchmarkCard } from "@/components/settings/runtime-benchmark-card";
 import { RuntimeComparisonCard } from "@/components/settings/runtime-comparison-card";
+import { RuntimeTrendCard } from "@/components/settings/runtime-trend-card";
 import { getHardwareProfile } from "@/lib/runtime/hardware-profile";
 import { getRecommendedRuntimeSetup } from "@/lib/runtime/runtime-comparison";
 import { getRuntimeBenchmark } from "@/lib/runtime/runtime-benchmarking";
 import { getHardwareAwareRuntimeRecommendation } from "@/lib/runtime/runtime-recommendations";
+import { getRuntimeTrend } from "@/lib/runtime/runtime-trends";
 import { getRuntimeComparison, getRuntimeUsageDashboard } from "@/lib/server/lessons/lesson-service";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
 
@@ -23,6 +25,23 @@ export default async function SettingsPage() {
   );
   const benchmark = getRuntimeBenchmark(settings, runtimeDashboard);
   const recommendedSetup = getRecommendedRuntimeSetup(runtimeComparison);
+  const trend = getRuntimeTrend(
+    {
+      provider: settings.provider,
+      model: settings.model,
+    },
+    runtimeDashboard.recentJobs
+      .filter(
+        (job) =>
+          job.runtimeProvider === settings.provider &&
+          job.runtimeModel === settings.model &&
+          typeof job.telemetry?.totalMs === "number",
+      )
+      .map((job) => ({
+        updatedAt: job.updatedAt,
+        totalMs: job.telemetry!.totalMs!,
+      })),
+  );
   const providerTip = balancedStandardRecommendation.providerTips[settings.provider];
 
   return (
@@ -110,6 +129,7 @@ export default async function SettingsPage() {
           ) : null}
 
           <RuntimeBenchmarkCard benchmark={benchmark} />
+          <RuntimeTrendCard trend={trend} />
           <RuntimeComparisonCard items={runtimeComparison} />
         </aside>
       </section>
