@@ -1,4 +1,5 @@
 import type { InteractiveBlockProgress, Scene, SceneType } from "./scene";
+import type { ModelProvider } from "./settings";
 
 export type GenerationMode = "fast" | "balanced" | "detailed";
 export type LearnerLevel = "beginner" | "intermediate" | "advanced";
@@ -26,6 +27,8 @@ export type Lesson = {
   learnerLevel: LearnerLevel;
   teachingStyle: TeachingStyle;
   lessonFormat: LessonFormat;
+  runtimeProvider?: ModelProvider;
+  runtimeModel?: string;
   status: LessonStatus;
   outline: OutlineItem[];
   scenes: Scene[];
@@ -65,6 +68,8 @@ export type LessonListItem = {
   learnerLevel: LearnerLevel;
   teachingStyle: TeachingStyle;
   lessonFormat: LessonFormat;
+  runtimeProvider?: ModelProvider;
+  runtimeModel?: string;
   sceneCount: number;
   lastViewedSceneOrder?: number;
   updatedAt: number;

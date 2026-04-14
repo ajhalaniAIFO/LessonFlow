@@ -33,6 +33,8 @@ export const LESSONS_TABLE_SQL = `
     learner_level TEXT NOT NULL DEFAULT 'intermediate',
     teaching_style TEXT NOT NULL DEFAULT 'practical',
     lesson_format TEXT NOT NULL DEFAULT 'standard',
+    runtime_provider TEXT,
+    runtime_model TEXT,
     status TEXT NOT NULL,
     error_message TEXT,
     last_viewed_scene_order INTEGER,

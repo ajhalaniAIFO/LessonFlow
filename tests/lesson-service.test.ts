@@ -10,6 +10,7 @@ import {
   createLessonJob,
   createOutlineGenerationJob,
   createLessonRegenerationJob,
+  getRuntimeComparison,
   getRuntimeUsageDashboard,
   getLessonById,
   getLessonJob,
@@ -21,6 +22,7 @@ import {
   saveInteractiveBlockProgress,
   updateLessonOutline,
 } from "@/lib/server/lessons/lesson-service";
+import { saveModelSettings } from "@/lib/server/settings/settings-service";
 
 function createTempDbPath() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lessonflow-service-test-"));
@@ -47,6 +49,14 @@ describe("lesson-service", () => {
   });
 
   it("creates a lesson and job record", async () => {
+    await saveModelSettings({
+      provider: "ollama",
+      baseUrl: "http://127.0.0.1:11434",
+      model: "llama3:latest",
+      temperature: 0.4,
+      maxTokens: 2000,
+      timeoutMs: 120000,
+    });
     const spy = vi.spyOn(outlineGenerator, "generateLessonOutline").mockResolvedValue({
       title: "Thermodynamics Basics",
       outline: [
@@ -106,6 +116,8 @@ describe("lesson-service", () => {
     expect(lesson?.learnerLevel).toBe("intermediate");
     expect(lesson?.teachingStyle).toBe("practical");
     expect(lesson?.lessonFormat).toBe("standard");
+    expect(lesson?.runtimeProvider).toBe("ollama");
+    expect(lesson?.runtimeModel).toBe("llama3:latest");
     expect(lesson?.outline).toHaveLength(3);
     expect(lesson?.scenes).toHaveLength(3);
     expect(lesson?.scenes[0]?.title).toBe("What Thermodynamics Studies");
@@ -458,6 +470,14 @@ describe("lesson-service", () => {
   });
 
   it("builds runtime usage dashboard data from recent jobs", async () => {
+    await saveModelSettings({
+      provider: "openai_compatible",
+      baseUrl: "http://127.0.0.1:8000/v1",
+      model: "google/gemma-3-4b-it",
+      temperature: 0.4,
+      maxTokens: 2000,
+      timeoutMs: 120000,
+    });
     vi.spyOn(outlineGenerator, "generateLessonOutline").mockResolvedValue({
       title: "Telemetry Lesson",
       outline: [
@@ -501,7 +521,81 @@ describe("lesson-service", () => {
     expect(dashboard.averageTotalMs).toBeTypeOf("number");
     expect(dashboard.totalLessonScenes).toBe(1);
     expect(dashboard.totalQuizScenes).toBe(1);
+    expect(dashboard.recentJobs[0]?.runtimeProvider).toBe("openai_compatible");
+    expect(dashboard.recentJobs[0]?.runtimeModel).toBe("google/gemma-3-4b-it");
     expect(dashboard.recentJobs[0]?.telemetry?.totalMs).toBeTypeOf("number");
+  });
+
+  it("groups recent runtime history for side-by-side comparison", async () => {
+    await saveModelSettings({
+      provider: "ollama",
+      baseUrl: "http://127.0.0.1:11434",
+      model: "llama3:latest",
+      temperature: 0.4,
+      maxTokens: 2000,
+      timeoutMs: 120000,
+    });
+
+    vi.spyOn(outlineGenerator, "generateLessonOutline").mockResolvedValue({
+      title: "Comparison Lesson",
+      outline: [
+        { title: "Lesson scene", goal: "Teach something", sceneType: "lesson" },
+        { title: "Quiz scene", goal: "Check understanding", sceneType: "quiz" },
+      ],
+    });
+    vi.spyOn(sceneGenerator, "generateLessonScene").mockResolvedValue({
+      title: "Lesson scene",
+      summary: "A short scene summary.",
+      sections: [{ heading: "Idea", body: "Explain the idea." }],
+      keyTakeaways: ["Takeaway"],
+    });
+    vi.spyOn(quizGenerator, "generateQuizScene").mockResolvedValue({
+      title: "Quiz scene",
+      questions: [
+        {
+          id: "quiz-q6",
+          prompt: "What happened?",
+          type: "multiple_choice",
+          options: ["A lesson was generated", "Nothing", "The app closed", "The DB reset"],
+          correctIndex: 0,
+          explanation: "The lesson pipeline completed successfully.",
+        },
+      ],
+    });
+
+    const first = await createLessonJob(
+      {
+        prompt: "Teach me comparison 1",
+        language: "en",
+      },
+      { autoProcess: false },
+    );
+    await processLessonJob(first.jobId);
+
+    await saveModelSettings({
+      provider: "openai_compatible",
+      baseUrl: "http://127.0.0.1:8000/v1",
+      model: "google/gemma-3-4b-it",
+      temperature: 0.4,
+      maxTokens: 2000,
+      timeoutMs: 120000,
+    });
+
+    const second = await createLessonJob(
+      {
+        prompt: "Teach me comparison 2",
+        language: "en",
+      },
+      { autoProcess: false },
+    );
+    await processLessonJob(second.jobId);
+
+    const comparison = await getRuntimeComparison();
+
+    expect(comparison.length).toBe(2);
+    expect(comparison.map((item) => item.runtimeModel)).toEqual(
+      expect.arrayContaining(["llama3:latest", "google/gemma-3-4b-it"]),
+    );
   });
 
   it("stores reviewed outline order changes", async () => {
