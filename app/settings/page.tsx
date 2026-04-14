@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { SettingsForm } from "@/components/settings/model-settings-form";
 import { RuntimeBenchmarkCard } from "@/components/settings/runtime-benchmark-card";
+import { RuntimeChartCard } from "@/components/settings/runtime-chart-card";
 import { RuntimeComparisonCard } from "@/components/settings/runtime-comparison-card";
 import { RuntimeTrendCard } from "@/components/settings/runtime-trend-card";
+import { getRuntimeChart } from "@/lib/runtime/runtime-chart";
 import { getHardwareProfile } from "@/lib/runtime/hardware-profile";
 import { getRecommendedRuntimeSetup } from "@/lib/runtime/runtime-comparison";
 import { getRuntimeBenchmark } from "@/lib/runtime/runtime-benchmarking";
@@ -24,6 +26,13 @@ export default async function SettingsPage() {
     hardwareProfile,
   );
   const benchmark = getRuntimeBenchmark(settings, runtimeDashboard);
+  const chart = getRuntimeChart(
+    {
+      provider: settings.provider,
+      model: settings.model,
+    },
+    runtimeDashboard.recentJobs,
+  );
   const recommendedSetup = getRecommendedRuntimeSetup(runtimeComparison);
   const trend = getRuntimeTrend(
     {
@@ -129,6 +138,7 @@ export default async function SettingsPage() {
           ) : null}
 
           <RuntimeBenchmarkCard benchmark={benchmark} />
+          <RuntimeChartCard chart={chart} />
           <RuntimeTrendCard trend={trend} />
           <RuntimeComparisonCard items={runtimeComparison} />
         </aside>
