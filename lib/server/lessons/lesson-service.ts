@@ -15,6 +15,7 @@ import type {
   GenerationMode,
   LearnerLevel,
   TeachingStyle,
+  LessonFormat,
 } from "@/types/lesson";
 import type { LessonJob, LessonJobStatus } from "@/types/job";
 import type { Scene } from "@/types/scene";
@@ -29,6 +30,7 @@ type LessonRow = {
   generation_mode: GenerationMode;
   learner_level: LearnerLevel;
   teaching_style: TeachingStyle;
+  lesson_format: LessonFormat;
   status: Lesson["status"];
   error_message: string | null;
   last_viewed_scene_order: number | null;
@@ -92,6 +94,7 @@ function mapLesson(row: LessonRow, outline: OutlineRow[], scenes: SceneRow[]): L
     generationMode: row.generation_mode,
     learnerLevel: row.learner_level,
     teachingStyle: row.teaching_style,
+    lessonFormat: row.lesson_format,
     status: row.status,
     errorMessage: row.error_message ?? undefined,
     lastViewedSceneOrder: row.last_viewed_scene_order ?? undefined,
@@ -134,6 +137,7 @@ export function parseCreateLessonRequest(input: unknown): CreateLessonRequest {
   const generationMode = String(raw.generationMode ?? "balanced").trim() as GenerationMode;
   const learnerLevel = String(raw.learnerLevel ?? "intermediate").trim() as LearnerLevel;
   const teachingStyle = String(raw.teachingStyle ?? "practical").trim() as TeachingStyle;
+  const lessonFormat = String(raw.lessonFormat ?? "standard").trim() as LessonFormat;
 
   if (!prompt && !uploadId) {
     throw new AppError("INVALID_REQUEST", "Provide a lesson prompt or an uploaded document.");
@@ -151,6 +155,10 @@ export function parseCreateLessonRequest(input: unknown): CreateLessonRequest {
     throw new AppError("INVALID_REQUEST", "A valid teaching style is required.");
   }
 
+  if (!["standard", "workshop", "guided_project"].includes(lessonFormat)) {
+    throw new AppError("INVALID_REQUEST", "A valid lesson format is required.");
+  }
+
   return {
     prompt: prompt || undefined,
     language,
@@ -158,6 +166,7 @@ export function parseCreateLessonRequest(input: unknown): CreateLessonRequest {
     generationMode,
     learnerLevel,
     teachingStyle,
+    lessonFormat,
   };
 }
 
@@ -172,10 +181,11 @@ export async function createLessonJob(
   const generationMode = input.generationMode ?? "balanced";
   const learnerLevel = input.learnerLevel ?? "intermediate";
   const teachingStyle = input.teachingStyle ?? "practical";
+  const lessonFormat = input.lessonFormat ?? "standard";
 
   db.prepare(
-      `INSERT INTO lessons (id, title, prompt, source_upload_id, source_type, language, generation_mode, learner_level, teaching_style, status, error_message, created_at, updated_at)
-     VALUES (@id, @title, @prompt, @source_upload_id, @source_type, @language, @generation_mode, @learner_level, @teaching_style, @status, @error_message, @created_at, @updated_at)`,
+      `INSERT INTO lessons (id, title, prompt, source_upload_id, source_type, language, generation_mode, learner_level, teaching_style, lesson_format, status, error_message, created_at, updated_at)
+     VALUES (@id, @title, @prompt, @source_upload_id, @source_type, @language, @generation_mode, @learner_level, @teaching_style, @lesson_format, @status, @error_message, @created_at, @updated_at)`,
   ).run({
     id: lessonId,
     title: "Generating lesson...",
@@ -186,6 +196,7 @@ export async function createLessonJob(
     generation_mode: generationMode,
     learner_level: learnerLevel,
     teaching_style: teachingStyle,
+    lesson_format: lessonFormat,
     status: "generating",
     error_message: null,
     created_at: now,
@@ -348,6 +359,7 @@ export async function regenerateLessonScene(lessonId: string, sceneId: string) {
       generationMode: lesson.generationMode,
       learnerLevel: lesson.learnerLevel,
       teachingStyle: lesson.teachingStyle,
+      lessonFormat: lesson.lessonFormat,
       sourceContext,
     });
 
@@ -384,6 +396,7 @@ export async function regenerateLessonScene(lessonId: string, sceneId: string) {
       generationMode: lesson.generationMode,
       learnerLevel: lesson.learnerLevel,
       teachingStyle: lesson.teachingStyle,
+      lessonFormat: lesson.lessonFormat,
       sourceContext,
     });
 
@@ -531,6 +544,7 @@ export async function processLessonOutlineJob(jobId: string) {
       generationMode: lesson.generation_mode,
       learnerLevel: lesson.learner_level,
       teachingStyle: lesson.teaching_style,
+      lessonFormat: lesson.lesson_format,
       sourceText: lesson.source_upload_id
         ? (await getUploadById(lesson.source_upload_id))?.extractedText
         : undefined,
@@ -658,6 +672,7 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
         generationMode: lesson.generation_mode,
         learnerLevel: lesson.learner_level,
         teachingStyle: lesson.teaching_style,
+        lessonFormat: lesson.lesson_format,
         sourceText: lesson.source_upload_id
           ? (await getUploadById(lesson.source_upload_id))?.extractedText
           : undefined,
@@ -729,6 +744,7 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
           generationMode: lesson.generation_mode,
           learnerLevel: lesson.learner_level,
           teachingStyle: lesson.teaching_style,
+          lessonFormat: lesson.lesson_format,
           sourceContext,
         });
 
@@ -772,6 +788,7 @@ async function processFullLessonJob(jobId: string, regenerateOutline: boolean) {
         generationMode: lesson.generation_mode,
         learnerLevel: lesson.learner_level,
         teachingStyle: lesson.teaching_style,
+        lessonFormat: lesson.lesson_format,
         sourceContext,
       });
 
@@ -860,11 +877,12 @@ export async function listLessons(): Promise<LessonListItem[]> {
               lessons.generation_mode,
               lessons.learner_level,
               lessons.teaching_style,
+              lessons.lesson_format,
               lessons.last_viewed_scene_order,
               COUNT(scenes.id) AS scene_count
        FROM lessons
        LEFT JOIN scenes ON scenes.lesson_id = lessons.id
-       GROUP BY lessons.id, lessons.title, lessons.status, lessons.updated_at, lessons.generation_mode, lessons.learner_level, lessons.teaching_style, lessons.last_viewed_scene_order
+       GROUP BY lessons.id, lessons.title, lessons.status, lessons.updated_at, lessons.generation_mode, lessons.learner_level, lessons.teaching_style, lessons.lesson_format, lessons.last_viewed_scene_order
        ORDER BY lessons.updated_at DESC`,
     )
     .all() as Array<{
@@ -874,6 +892,7 @@ export async function listLessons(): Promise<LessonListItem[]> {
     generation_mode: GenerationMode;
     learner_level: LearnerLevel;
     teaching_style: TeachingStyle;
+    lesson_format: LessonFormat;
     updated_at: number;
     scene_count: number;
     last_viewed_scene_order: number | null;
@@ -886,6 +905,7 @@ export async function listLessons(): Promise<LessonListItem[]> {
     generationMode: row.generation_mode,
     learnerLevel: row.learner_level,
     teachingStyle: row.teaching_style,
+    lessonFormat: row.lesson_format,
     sceneCount: row.scene_count,
     lastViewedSceneOrder: row.last_viewed_scene_order ?? undefined,
     updatedAt: row.updated_at,

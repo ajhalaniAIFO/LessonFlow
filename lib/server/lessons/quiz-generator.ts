@@ -6,6 +6,7 @@ import {
   getLearnerLevelDefinition,
   getTeachingStyleDefinition,
 } from "@/lib/server/lessons/personalization";
+import { getLessonFormatDefinition } from "@/lib/server/lessons/teaching-modes";
 import { getProvider } from "@/lib/server/llm/provider-registry";
 import type { LLMProvider } from "@/lib/server/llm/types";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
@@ -37,6 +38,7 @@ export async function generateQuizScene(
     generationMode?: "fast" | "balanced" | "detailed";
     learnerLevel?: "beginner" | "intermediate" | "advanced";
     teachingStyle?: "concise" | "practical" | "step_by_step";
+    lessonFormat?: "standard" | "workshop" | "guided_project";
     sourceContext?: SourceContext;
   },
   providerOverride?: LLMProvider,
@@ -47,9 +49,11 @@ export async function generateQuizScene(
   const generationMode = input.generationMode ?? "balanced";
   const learnerLevel = input.learnerLevel ?? "intermediate";
   const teachingStyle = input.teachingStyle ?? "practical";
+  const lessonFormat = input.lessonFormat ?? "standard";
   const modeDefinition = getGenerationModeDefinition(generationMode);
   const learnerLevelDefinition = getLearnerLevelDefinition(learnerLevel);
   const teachingStyleDefinition = getTeachingStyleDefinition(teachingStyle);
+  const lessonFormatDefinition = getLessonFormatDefinition(lessonFormat);
   const requestSettings = resolveGenerationRequestSettings(generationMode, settings);
 
   const prompt = `${template}
@@ -70,6 +74,8 @@ Requirements:
 - Learner level guidance: ${learnerLevelDefinition.guidance}
 - Teaching style: ${teachingStyleDefinition.label}
 - Teaching style guidance: ${teachingStyleDefinition.guidance}
+- Lesson format: ${lessonFormatDefinition.label}
+- Lesson format guidance: ${lessonFormatDefinition.quizGuidance}
 - Language: ${input.language}
 
 Lesson title:

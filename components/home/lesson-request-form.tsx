@@ -7,9 +7,10 @@ import {
   listLearnerLevels,
   listTeachingStyles,
 } from "@/lib/server/lessons/personalization";
+import { listLessonFormats } from "@/lib/server/lessons/teaching-modes";
 import type { ApiResponse } from "@/types/api";
 import type { UploadRecord } from "@/types/upload";
-import type { GenerationMode, LearnerLevel, TeachingStyle } from "@/types/lesson";
+import type { GenerationMode, LearnerLevel, TeachingStyle, LessonFormat } from "@/types/lesson";
 
 type CreateLessonResult = {
   lessonId: string;
@@ -23,6 +24,7 @@ export function LessonRequestForm() {
   const [generationMode, setGenerationMode] = useState<GenerationMode>("balanced");
   const [learnerLevel, setLearnerLevel] = useState<LearnerLevel>("intermediate");
   const [teachingStyle, setTeachingStyle] = useState<TeachingStyle>("practical");
+  const [lessonFormat, setLessonFormat] = useState<LessonFormat>("standard");
   const [status, setStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -97,6 +99,7 @@ export function LessonRequestForm() {
         generationMode,
         learnerLevel,
         teachingStyle,
+        lessonFormat,
       }),
     });
     const payload = (await response.json()) as ApiResponse<CreateLessonResult>;
@@ -207,6 +210,24 @@ export function LessonRequestForm() {
         </select>
         <span className="field-hint">
           {listTeachingStyles().find((style) => style.id === teachingStyle)?.description}
+        </span>
+      </div>
+
+      <div className="field">
+        <label htmlFor="lesson-format">Lesson format</label>
+        <select
+          id="lesson-format"
+          value={lessonFormat}
+          onChange={(event) => setLessonFormat(event.target.value as LessonFormat)}
+        >
+          {listLessonFormats().map((format) => (
+            <option key={format.id} value={format.id}>
+              {format.label}
+            </option>
+          ))}
+        </select>
+        <span className="field-hint">
+          {listLessonFormats().find((format) => format.id === lessonFormat)?.description}
         </span>
       </div>
 

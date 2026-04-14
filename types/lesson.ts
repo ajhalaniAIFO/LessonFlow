@@ -3,6 +3,7 @@ import type { Scene, SceneType } from "./scene";
 export type GenerationMode = "fast" | "balanced" | "detailed";
 export type LearnerLevel = "beginner" | "intermediate" | "advanced";
 export type TeachingStyle = "concise" | "practical" | "step_by_step";
+export type LessonFormat = "standard" | "workshop" | "guided_project";
 
 export type OutlineItem = {
   id: string;
@@ -24,6 +25,7 @@ export type Lesson = {
   generationMode: GenerationMode;
   learnerLevel: LearnerLevel;
   teachingStyle: TeachingStyle;
+  lessonFormat: LessonFormat;
   status: LessonStatus;
   outline: OutlineItem[];
   scenes: Scene[];
@@ -40,6 +42,7 @@ export type CreateLessonRequest = {
   generationMode?: GenerationMode;
   learnerLevel?: LearnerLevel;
   teachingStyle?: TeachingStyle;
+  lessonFormat?: LessonFormat;
 };
 
 export type OutlineReviewUpdate = {
@@ -60,6 +63,7 @@ export type LessonListItem = {
   generationMode: GenerationMode;
   learnerLevel: LearnerLevel;
   teachingStyle: TeachingStyle;
+  lessonFormat: LessonFormat;
   sceneCount: number;
   lastViewedSceneOrder?: number;
   updatedAt: number;
