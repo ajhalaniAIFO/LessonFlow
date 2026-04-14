@@ -2,8 +2,11 @@ import Link from "next/link";
 import { HomeRuntimeSummaryCard } from "@/components/home/home-runtime-summary-card";
 import { LessonLibrary } from "@/components/home/lesson-library";
 import { LessonRequestForm } from "@/components/home/lesson-request-form";
+import { RuntimeAlertCard } from "@/components/home/runtime-alert-card";
 import { RuntimeUsageDashboardCard } from "@/components/home/runtime-usage-dashboard";
+import { getRuntimeAlerts } from "@/lib/runtime/runtime-alerts";
 import { getHomeRuntimeSummary } from "@/lib/runtime/home-runtime-summary";
+import { getRuntimeTrend } from "@/lib/runtime/runtime-trends";
 import { getRuntimeComparison } from "@/lib/server/lessons/lesson-service";
 import { getRuntimeUsageDashboard, listLessons } from "@/lib/server/lessons/lesson-service";
 import { getHardwareProfile } from "@/lib/runtime/hardware-profile";
@@ -18,6 +21,29 @@ export default async function HomePage() {
   const settings = await getModelSettings();
   const hardwareProfile = getHardwareProfile();
   const runtimeSummary = getHomeRuntimeSummary(settings, runtimeDashboard, runtimeComparison);
+  const runtimeTrend = getRuntimeTrend(
+    {
+      provider: settings.provider,
+      model: settings.model,
+    },
+    runtimeDashboard.recentJobs
+      .filter(
+        (job) =>
+          job.runtimeProvider === settings.provider &&
+          job.runtimeModel === settings.model &&
+          typeof job.telemetry?.totalMs === "number",
+      )
+      .map((job) => ({
+        updatedAt: job.updatedAt,
+        totalMs: job.telemetry!.totalMs!,
+      })),
+  );
+  const runtimeAlerts = getRuntimeAlerts(
+    settings,
+    runtimeDashboard,
+    runtimeComparison,
+    runtimeTrend,
+  );
 
   return (
     <main className="page-shell">
@@ -85,6 +111,10 @@ export default async function HomePage() {
 
       <section style={{ marginTop: "24px" }}>
         <HomeRuntimeSummaryCard summary={runtimeSummary} />
+      </section>
+
+      <section style={{ marginTop: "24px" }}>
+        <RuntimeAlertCard alerts={runtimeAlerts} />
       </section>
 
       <section style={{ marginTop: "24px" }}>

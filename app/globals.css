@@ -322,6 +322,11 @@ select {
   }
 }
 
+.runtime-alert-list {
+  display: grid;
+  gap: 12px;
+}
+
 .runtime-comparison-list {
   display: grid;
   gap: 12px;

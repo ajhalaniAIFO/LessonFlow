@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { SettingsForm } from "@/components/settings/model-settings-form";
 import { RuntimeBenchmarkCard } from "@/components/settings/runtime-benchmark-card";
+import { SettingsRuntimeAlertCard } from "@/components/settings/runtime-alert-card";
 import { RuntimeComparisonCard } from "@/components/settings/runtime-comparison-card";
 import { RuntimeHistoryCard } from "@/components/settings/runtime-history-card";
 import { RuntimeTrendCard } from "@/components/settings/runtime-trend-card";
+import { getRuntimeAlerts } from "@/lib/runtime/runtime-alerts";
 import { getRuntimeComparisonCharts } from "@/lib/runtime/runtime-comparison-chart";
 import { getHardwareProfile } from "@/lib/runtime/hardware-profile";
 import { getRecommendedRuntimeSetup } from "@/lib/runtime/runtime-comparison";
@@ -52,6 +54,12 @@ export default async function SettingsPage() {
         updatedAt: job.updatedAt,
         totalMs: job.telemetry!.totalMs!,
       })),
+  );
+  const runtimeAlerts = getRuntimeAlerts(
+    settings,
+    runtimeDashboard,
+    runtimeComparison,
+    trend,
   );
   const providerTip = balancedStandardRecommendation.providerTips[settings.provider];
 
@@ -140,6 +148,7 @@ export default async function SettingsPage() {
           ) : null}
 
           <RuntimeBenchmarkCard benchmark={benchmark} />
+          <SettingsRuntimeAlertCard alerts={runtimeAlerts} />
           <RuntimeTrendCard trend={trend} />
           <RuntimeHistoryCard history={history} />
           <RuntimeComparisonCard items={runtimeComparison} charts={runtimeComparisonCharts} />
