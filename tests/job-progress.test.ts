@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatTelemetryDuration,
   generationStages,
   getJobHeadline,
   getJobSupportCopy,
+  getJobTelemetryItems,
   getStageState,
 } from "@/lib/server/lessons/job-progress";
 import type { LessonJob } from "@/types/job";
@@ -73,5 +75,33 @@ describe("job-progress helpers", () => {
 
   it("provides a placeholder headline before the first poll returns", () => {
     expect(getJobHeadline(null)).toBe("Preparing your lesson job");
+  });
+
+  it("formats telemetry durations into readable values", () => {
+    expect(formatTelemetryDuration(420)).toBe("420 ms");
+    expect(formatTelemetryDuration(4200)).toBe("4.2 s");
+  });
+
+  it("builds telemetry items for completed jobs", () => {
+    const job = createJob({
+      status: "ready",
+      stage: "ready",
+      progress: 100,
+      telemetry: {
+        outlineMs: 1200,
+        sceneGenerationMs: 3500,
+        quizGenerationMs: 900,
+        totalMs: 5600,
+        lessonSceneCount: 2,
+        quizSceneCount: 1,
+      },
+    });
+
+    expect(getJobTelemetryItems(job)).toEqual([
+      { key: "outline", label: "Outline", value: "1.2 s" },
+      { key: "scenes", label: "Scenes", value: "3.5 s", detail: "2 lesson scenes" },
+      { key: "quizzes", label: "Quizzes", value: "900 ms", detail: "1 quiz scene" },
+      { key: "total", label: "Total observed", value: "5.6 s" },
+    ]);
   });
 });

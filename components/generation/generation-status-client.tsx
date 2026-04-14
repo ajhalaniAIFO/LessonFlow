@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { ApiResponse } from "@/types/api";
 import type { LessonJob } from "@/types/job";
 import {
+  getJobTelemetryItems,
   generationStages,
   getJobHeadline,
   getJobSupportCopy,
@@ -21,6 +22,7 @@ export function GenerationStatusClient({ jobId }: Props) {
   const router = useRouter();
   const [job, setJob] = useState<LessonJob | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const telemetryItems = getJobTelemetryItems(job);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,6 +88,23 @@ export function GenerationStatusClient({ jobId }: Props) {
             <p className="status-copy">{job?.message ?? "Loading job status..."}</p>
             {job?.errorMessage ? <p className="status-copy">{job.errorMessage}</p> : null}
           </div>
+
+          {telemetryItems.length > 0 ? (
+            <div className="status-box">
+              <p className="status-title">Observed timings</p>
+              <dl className="telemetry-list">
+                {telemetryItems.map((item) => (
+                  <div key={item.key} className="telemetry-item">
+                    <dt>{item.label}</dt>
+                    <dd>
+                      <strong>{item.value}</strong>
+                      {item.detail ? <span>{item.detail}</span> : null}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ) : null}
 
           {job?.status === "ready" ? (
             <div className="button-row">

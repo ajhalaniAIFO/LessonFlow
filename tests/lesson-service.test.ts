@@ -112,6 +112,11 @@ describe("lesson-service", () => {
     expect(lesson?.scenes[2]?.type).toBe("quiz");
     expect(sceneSpy).toHaveBeenCalledTimes(2);
     expect(job?.status).toBe("ready");
+    expect(job?.telemetry?.outlineMs).toBeTypeOf("number");
+    expect(job?.telemetry?.sceneGenerationMs).toBeTypeOf("number");
+    expect(job?.telemetry?.quizGenerationMs).toBeTypeOf("number");
+    expect(job?.telemetry?.lessonSceneCount).toBe(2);
+    expect(job?.telemetry?.quizSceneCount).toBe(1);
     spy.mockRestore();
     sceneSpy.mockRestore();
     quizSpy.mockRestore();
@@ -285,6 +290,7 @@ describe("lesson-service", () => {
     const reviewJob = await getLessonJob(regeneration.jobId);
 
     expect(reviewJob?.status).toBe("awaiting_review");
+    expect(reviewJob?.telemetry?.outlineMs).toBeTypeOf("number");
     expect(reviewLesson?.status).toBe("draft");
     expect(reviewLesson?.scenes).toHaveLength(0);
 
@@ -439,6 +445,10 @@ describe("lesson-service", () => {
     expect(finishedLesson?.scenes).toHaveLength(2);
     expect(finishedLesson?.outline[0]?.title).toBe("Reviewed title");
     expect(continuedJob?.status).toBe("ready");
+    expect(continuedJob?.telemetry?.sceneGenerationMs).toBeTypeOf("number");
+    expect(continuedJob?.telemetry?.quizGenerationMs).toBeTypeOf("number");
+    expect(continuedJob?.telemetry?.lessonSceneCount).toBe(1);
+    expect(continuedJob?.telemetry?.quizSceneCount).toBe(1);
 
     outlineSpy.mockRestore();
     sceneSpy.mockRestore();
