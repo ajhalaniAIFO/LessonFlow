@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SourceTraceCard } from "@/components/lesson/source-trace-card";
 import type { ApiResponse } from "@/types/api";
 import type { QuizAnswerResult, QuizAttempt, QuizSceneContent } from "@/types/scene";
 
@@ -151,6 +152,10 @@ export function QuizSceneClient({ lessonId, sceneId, title, content }: Props) {
           <p className="status-title">Unable to grade quiz</p>
           <p className="status-copy">{error}</p>
         </div>
+      ) : null}
+
+      {content.sourceContext ? (
+        <SourceTraceCard sourceContext={content.sourceContext} sceneType="quiz" />
       ) : null}
 
       {history.length > 0 ? (

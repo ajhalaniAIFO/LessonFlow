@@ -247,6 +247,15 @@ select {
   color: var(--muted);
 }
 
+.source-trace-box {
+  gap: 10px;
+}
+
+.source-trace-excerpt {
+  padding-left: 14px;
+  border-left: 3px solid rgba(32, 82, 214, 0.18);
+}
+
 .document-preview {
   margin-top: 14px;
   padding: 14px 16px;

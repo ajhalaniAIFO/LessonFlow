@@ -65,8 +65,17 @@ export function buildSourceContext(input: {
     return undefined;
   }
 
+  const topHighlights = unique(fallback.flatMap((item) => item.overlap).slice(0, 5));
+  const focusTopic = input.outlineTitle ?? input.lessonPrompt;
+  const rationale =
+    topHighlights.length > 0
+      ? `Chosen because it overlaps with "${focusTopic}" through ${topHighlights.join(", ")}.`
+      : `Chosen as the clearest available source support for "${focusTopic}".`;
+
   return {
     excerpt,
-    highlights: unique(fallback.flatMap((item) => item.overlap).slice(0, 5)),
+    highlights: topHighlights,
+    rationale,
+    emphasisLabel: topHighlights.length > 0 ? "Matched source terms" : "Source support",
   };
 }

@@ -5,6 +5,7 @@ import { QuizSceneClient } from "@/components/lesson/quiz-scene-client";
 import { RegenerateLessonButton } from "@/components/lesson/regenerate-lesson-button";
 import { RegenerateSceneButton } from "@/components/lesson/regenerate-scene-button";
 import { SceneProgressTracker } from "@/components/lesson/scene-progress-tracker";
+import { SourceTraceCard } from "@/components/lesson/source-trace-card";
 import { TutorChatClient } from "@/components/lesson/tutor-chat-client";
 import {
   getFormatAwareCopy,
@@ -222,15 +223,7 @@ export default async function LessonPage({
                       </>
                     ) : null}
                     {activeScene.content.sourceContext ? (
-                      <div className="status-box">
-                        <p className="status-title">Source grounding</p>
-                        <p className="status-copy">{activeScene.content.sourceContext.excerpt}</p>
-                        {activeScene.content.sourceContext.highlights.length ? (
-                          <p className="status-copy">
-                            Highlights: {activeScene.content.sourceContext.highlights.join(", ")}
-                          </p>
-                        ) : null}
-                      </div>
+                      <SourceTraceCard sourceContext={activeScene.content.sourceContext} sceneType="lesson" />
                     ) : null}
                   </>
                 ) : activeScene.content && "questions" in activeScene.content ? (
