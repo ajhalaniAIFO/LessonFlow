@@ -1,5 +1,9 @@
 import type { RuntimeTrend } from "@/lib/runtime/runtime-trends";
-import type { ModelSettings, SyntheticBenchmarkComparisonItem } from "@/types/settings";
+import type {
+  ModelSettings,
+  SyntheticBenchmarkChart,
+  SyntheticBenchmarkComparisonItem,
+} from "@/types/settings";
 
 export type HomeSyntheticBenchmarkSummary = {
   headline: string;
@@ -9,12 +13,14 @@ export type HomeSyntheticBenchmarkSummary = {
   isCurrentBest: boolean;
   trendHeadline?: string;
   trendSummary?: string;
+  chart?: SyntheticBenchmarkChart;
 };
 
 export function getHomeSyntheticBenchmarkSummary(
   settings: Pick<ModelSettings, "provider" | "model">,
   comparisonItems: SyntheticBenchmarkComparisonItem[],
   trend?: RuntimeTrend,
+  chart?: SyntheticBenchmarkChart,
 ): HomeSyntheticBenchmarkSummary {
   const currentSetupLabel = `${settings.provider} | ${settings.model || "model not set"}`;
   const best = comparisonItems[0];
@@ -28,6 +34,7 @@ export function getHomeSyntheticBenchmarkSummary(
       isCurrentBest: false,
       trendHeadline: trend?.headline,
       trendSummary: trend?.summary,
+      chart,
     };
   }
 
@@ -45,5 +52,6 @@ export function getHomeSyntheticBenchmarkSummary(
     isCurrentBest,
     trendHeadline: trend?.headline,
     trendSummary: trend?.summary,
+    chart,
   };
 }
