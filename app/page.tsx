@@ -14,6 +14,7 @@ import { getSyntheticBenchmarkComparisonCharts } from "@/lib/runtime/synthetic-b
 import { getHomeSyntheticBenchmarkSummary } from "@/lib/runtime/home-synthetic-benchmark-summary";
 import { getHomeSyntheticBenchmarkHistory } from "@/lib/runtime/home-synthetic-benchmark-history";
 import { getHomeUnifiedRecommendation } from "@/lib/runtime/home-unified-recommendations";
+import { getHomeUnifiedRecommendationAlerts } from "@/lib/runtime/home-unified-recommendation-alerts";
 import { getSyntheticBenchmarkTrend } from "@/lib/runtime/synthetic-benchmark-trends";
 import { getRuntimeAlerts } from "@/lib/runtime/runtime-alerts";
 import { getHomeRuntimeSummary } from "@/lib/runtime/home-runtime-summary";
@@ -62,6 +63,8 @@ export default async function HomePage() {
     runtimeSummary,
     syntheticBenchmarkSummary,
   );
+  const unifiedRecommendationAlerts =
+    getHomeUnifiedRecommendationAlerts(unifiedRecommendation);
   const runtimeTrend = getRuntimeTrend(
     {
       provider: settings.provider,
@@ -156,6 +159,10 @@ export default async function HomePage() {
 
       <section style={{ marginTop: "24px" }}>
         <HomeUnifiedRecommendationCard recommendation={unifiedRecommendation} />
+      </section>
+
+      <section style={{ marginTop: "24px" }}>
+        <RuntimeAlertCard alerts={unifiedRecommendationAlerts} />
       </section>
 
       <section style={{ marginTop: "24px" }}>
