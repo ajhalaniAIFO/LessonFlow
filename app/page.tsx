@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { HomeSyntheticBenchmarkSummaryCard } from "@/components/home/home-synthetic-benchmark-summary-card";
 import { HomeSyntheticBenchmarkComparisonCard } from "@/components/home/home-synthetic-benchmark-comparison-card";
+import { HomeSyntheticBenchmarkHistoryCard } from "@/components/home/home-synthetic-benchmark-history-card";
 import { HomeRuntimeSummaryCard } from "@/components/home/home-runtime-summary-card";
 import { LessonLibrary } from "@/components/home/lesson-library";
 import { LessonRequestForm } from "@/components/home/lesson-request-form";
@@ -10,6 +11,7 @@ import { getSyntheticBenchmarkAlerts } from "@/lib/runtime/synthetic-benchmark-a
 import { getSyntheticBenchmarkChart } from "@/lib/runtime/synthetic-benchmark-chart";
 import { getSyntheticBenchmarkComparisonCharts } from "@/lib/runtime/synthetic-benchmark-comparison-chart";
 import { getHomeSyntheticBenchmarkSummary } from "@/lib/runtime/home-synthetic-benchmark-summary";
+import { getHomeSyntheticBenchmarkHistory } from "@/lib/runtime/home-synthetic-benchmark-history";
 import { getSyntheticBenchmarkTrend } from "@/lib/runtime/synthetic-benchmark-trends";
 import { getRuntimeAlerts } from "@/lib/runtime/runtime-alerts";
 import { getHomeRuntimeSummary } from "@/lib/runtime/home-runtime-summary";
@@ -46,6 +48,7 @@ export default async function HomePage() {
   const syntheticBenchmarkComparisonCharts = getSyntheticBenchmarkComparisonCharts(
     allSyntheticBenchmarks,
   );
+  const syntheticBenchmarkHistory = getHomeSyntheticBenchmarkHistory(syntheticBenchmarks);
   const runtimeSummary = getHomeRuntimeSummary(settings, runtimeDashboard, runtimeComparison);
   const syntheticBenchmarkSummary = getHomeSyntheticBenchmarkSummary(
     settings,
@@ -155,6 +158,10 @@ export default async function HomePage() {
 
       <section style={{ marginTop: "24px" }}>
         <HomeSyntheticBenchmarkComparisonCard rows={syntheticBenchmarkComparisonCharts} />
+      </section>
+
+      <section style={{ marginTop: "24px" }}>
+        <HomeSyntheticBenchmarkHistoryCard history={syntheticBenchmarkHistory} />
       </section>
 
       <section style={{ marginTop: "24px" }}>
