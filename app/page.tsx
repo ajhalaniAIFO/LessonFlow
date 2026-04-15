@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HomeUnifiedRecommendationCard } from "@/components/home/home-unified-recommendation-card";
 import { HomeSyntheticBenchmarkSummaryCard } from "@/components/home/home-synthetic-benchmark-summary-card";
 import { HomeSyntheticBenchmarkComparisonCard } from "@/components/home/home-synthetic-benchmark-comparison-card";
 import { HomeSyntheticBenchmarkHistoryCard } from "@/components/home/home-synthetic-benchmark-history-card";
@@ -12,6 +13,7 @@ import { getSyntheticBenchmarkChart } from "@/lib/runtime/synthetic-benchmark-ch
 import { getSyntheticBenchmarkComparisonCharts } from "@/lib/runtime/synthetic-benchmark-comparison-chart";
 import { getHomeSyntheticBenchmarkSummary } from "@/lib/runtime/home-synthetic-benchmark-summary";
 import { getHomeSyntheticBenchmarkHistory } from "@/lib/runtime/home-synthetic-benchmark-history";
+import { getHomeUnifiedRecommendation } from "@/lib/runtime/home-unified-recommendations";
 import { getSyntheticBenchmarkTrend } from "@/lib/runtime/synthetic-benchmark-trends";
 import { getRuntimeAlerts } from "@/lib/runtime/runtime-alerts";
 import { getHomeRuntimeSummary } from "@/lib/runtime/home-runtime-summary";
@@ -55,6 +57,10 @@ export default async function HomePage() {
     syntheticBenchmarkComparison,
     syntheticBenchmarkTrend,
     syntheticBenchmarkChart,
+  );
+  const unifiedRecommendation = getHomeUnifiedRecommendation(
+    runtimeSummary,
+    syntheticBenchmarkSummary,
   );
   const runtimeTrend = getRuntimeTrend(
     {
@@ -146,6 +152,10 @@ export default async function HomePage() {
             <li>Return here and generate your first lesson outline</li>
           </ul>
         </aside>
+      </section>
+
+      <section style={{ marginTop: "24px" }}>
+        <HomeUnifiedRecommendationCard recommendation={unifiedRecommendation} />
       </section>
 
       <section style={{ marginTop: "24px" }}>
