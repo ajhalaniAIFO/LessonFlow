@@ -1,0 +1,60 @@
+import { describe, expect, it } from "vitest";
+import { getHomeSyntheticBenchmarkSummary } from "@/lib/runtime/home-synthetic-benchmark-summary";
+import type { SyntheticBenchmarkComparisonItem } from "@/types/settings";
+
+describe("home-synthetic-benchmark-summary", () => {
+  it("returns a placeholder when there is no benchmark winner yet", () => {
+    const summary = getHomeSyntheticBenchmarkSummary(
+      { provider: "ollama", model: "llama3:latest" },
+      [],
+    );
+
+    expect(summary.headline).toContain("grows");
+    expect(summary.benchmarkWinnerLabel).toBeUndefined();
+  });
+
+  it("marks the current setup as leading when it matches the benchmark winner", () => {
+    const comparison: SyntheticBenchmarkComparisonItem[] = [
+      {
+        provider: "ollama",
+        model: "llama3:latest",
+        successfulRuns: 3,
+        averageDurationMs: 3_000,
+        fastestDurationMs: 2_800,
+        slowestDurationMs: 3_200,
+        latestCreatedAt: 1,
+      },
+    ];
+
+    const summary = getHomeSyntheticBenchmarkSummary(
+      { provider: "ollama", model: "llama3:latest" },
+      comparison,
+    );
+
+    expect(summary.isCurrentBest).toBe(true);
+    expect(summary.headline).toContain("leading");
+  });
+
+  it("surfaces a benchmark winner when the current setup is not best", () => {
+    const comparison: SyntheticBenchmarkComparisonItem[] = [
+      {
+        provider: "openai_compatible",
+        model: "gemma4",
+        successfulRuns: 2,
+        averageDurationMs: 2_400,
+        fastestDurationMs: 2_100,
+        slowestDurationMs: 2_700,
+        latestCreatedAt: 1,
+      },
+    ];
+
+    const summary = getHomeSyntheticBenchmarkSummary(
+      { provider: "ollama", model: "llama3:latest" },
+      comparison,
+    );
+
+    expect(summary.isCurrentBest).toBe(false);
+    expect(summary.benchmarkWinnerLabel).toContain("openai_compatible");
+    expect(summary.summary).toContain("fastest");
+  });
+});

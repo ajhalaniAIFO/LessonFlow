@@ -1,15 +1,18 @@
 import Link from "next/link";
+import { HomeSyntheticBenchmarkSummaryCard } from "@/components/home/home-synthetic-benchmark-summary-card";
 import { HomeRuntimeSummaryCard } from "@/components/home/home-runtime-summary-card";
 import { LessonLibrary } from "@/components/home/lesson-library";
 import { LessonRequestForm } from "@/components/home/lesson-request-form";
 import { RuntimeAlertCard } from "@/components/home/runtime-alert-card";
 import { RuntimeUsageDashboardCard } from "@/components/home/runtime-usage-dashboard";
+import { getHomeSyntheticBenchmarkSummary } from "@/lib/runtime/home-synthetic-benchmark-summary";
 import { getRuntimeAlerts } from "@/lib/runtime/runtime-alerts";
 import { getHomeRuntimeSummary } from "@/lib/runtime/home-runtime-summary";
 import { getRuntimeTrend } from "@/lib/runtime/runtime-trends";
 import { getRuntimeComparison } from "@/lib/server/lessons/lesson-service";
 import { getRuntimeUsageDashboard, listLessons } from "@/lib/server/lessons/lesson-service";
 import { getHardwareProfile } from "@/lib/runtime/hardware-profile";
+import { getSyntheticBenchmarkComparison } from "@/lib/server/settings/benchmark-service";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +21,14 @@ export default async function HomePage() {
   const lessons = await listLessons();
   const runtimeDashboard = await getRuntimeUsageDashboard();
   const runtimeComparison = await getRuntimeComparison();
+  const syntheticBenchmarkComparison = await getSyntheticBenchmarkComparison();
   const settings = await getModelSettings();
   const hardwareProfile = getHardwareProfile();
   const runtimeSummary = getHomeRuntimeSummary(settings, runtimeDashboard, runtimeComparison);
+  const syntheticBenchmarkSummary = getHomeSyntheticBenchmarkSummary(
+    settings,
+    syntheticBenchmarkComparison,
+  );
   const runtimeTrend = getRuntimeTrend(
     {
       provider: settings.provider,
@@ -111,6 +119,10 @@ export default async function HomePage() {
 
       <section style={{ marginTop: "24px" }}>
         <HomeRuntimeSummaryCard summary={runtimeSummary} />
+      </section>
+
+      <section style={{ marginTop: "24px" }}>
+        <HomeSyntheticBenchmarkSummaryCard summary={syntheticBenchmarkSummary} />
       </section>
 
       <section style={{ marginTop: "24px" }}>
