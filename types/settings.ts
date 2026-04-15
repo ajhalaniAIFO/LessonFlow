@@ -34,3 +34,8 @@ export type SyntheticBenchmarkComparisonItem = {
   slowestDurationMs: number;
   latestCreatedAt: number;
 };
+
+export type RecommendedSyntheticBenchmarkSetup = {
+  provider: ModelProvider;
+  model: string;
+};

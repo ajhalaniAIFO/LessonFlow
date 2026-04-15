@@ -11,6 +11,7 @@ import { getRuntimeAlerts } from "@/lib/runtime/runtime-alerts";
 import { getRuntimeComparisonCharts } from "@/lib/runtime/runtime-comparison-chart";
 import { getHardwareProfile } from "@/lib/runtime/hardware-profile";
 import { getRecommendedRuntimeSetup } from "@/lib/runtime/runtime-comparison";
+import { getRecommendedSyntheticBenchmarkSetup } from "@/lib/runtime/synthetic-benchmark-comparison";
 import { getRuntimeBenchmark } from "@/lib/runtime/runtime-benchmarking";
 import { getRuntimeHistory } from "@/lib/runtime/runtime-history";
 import { getHardwareAwareRuntimeRecommendation } from "@/lib/runtime/runtime-recommendations";
@@ -50,6 +51,8 @@ export default async function SettingsPage() {
     runtimeDashboard.recentJobs,
   );
   const recommendedSetup = getRecommendedRuntimeSetup(runtimeComparison);
+  const recommendedSyntheticBenchmarkSetup =
+    getRecommendedSyntheticBenchmarkSetup(syntheticBenchmarkComparison);
   const trend = getRuntimeTrend(
     {
       provider: settings.provider,
@@ -115,6 +118,7 @@ export default async function SettingsPage() {
                   }
                 : undefined
             }
+            recommendedSyntheticBenchmarkSettings={recommendedSyntheticBenchmarkSetup ?? undefined}
           />
         </article>
 

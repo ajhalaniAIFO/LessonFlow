@@ -3,7 +3,11 @@
 import { useMemo, useState, useTransition } from "react";
 import type { ModelInfo } from "@/lib/server/llm/types";
 import type { ApiResponse } from "@/types/api";
-import type { ModelSettings, SyntheticBenchmarkRecord } from "@/types/settings";
+import type {
+  ModelSettings,
+  RecommendedSyntheticBenchmarkSetup,
+  SyntheticBenchmarkRecord,
+} from "@/types/settings";
 
 type StatusState = {
   tone: "success" | "error";
@@ -30,9 +34,14 @@ type TestResult = {
 type FormProps = {
   initialSettings: ModelSettings;
   recommendedSettings?: Partial<ModelSettings>;
+  recommendedSyntheticBenchmarkSettings?: RecommendedSyntheticBenchmarkSetup;
 };
 
-export function SettingsForm({ initialSettings, recommendedSettings }: FormProps) {
+export function SettingsForm({
+  initialSettings,
+  recommendedSettings,
+  recommendedSyntheticBenchmarkSettings,
+}: FormProps) {
   const [form, setForm] = useState<ModelSettings>(initialSettings);
   const [modelOptions, setModelOptions] = useState<ModelInfo[]>([]);
   const [status, setStatus] = useState<StatusState | null>(null);
@@ -78,6 +87,26 @@ export function SettingsForm({ initialSettings, recommendedSettings }: FormProps
       tone: "success",
       title: "Recommended setup applied",
       message: "We copied the strongest recent provider/model pairing into the form. Save settings to keep it.",
+    });
+    setDiagnostics(null);
+    setBenchmarkResult(null);
+  }
+
+  function applySyntheticBenchmarkRecommendation() {
+    if (!recommendedSyntheticBenchmarkSettings) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      provider: recommendedSyntheticBenchmarkSettings.provider,
+      model: recommendedSyntheticBenchmarkSettings.model,
+    }));
+    setStatus({
+      tone: "success",
+      title: "Synthetic benchmark setup applied",
+      message:
+        "We copied the fastest controlled benchmarked provider/model pairing into the form. Save settings to keep it.",
     });
     setDiagnostics(null);
     setBenchmarkResult(null);
@@ -319,6 +348,15 @@ export function SettingsForm({ initialSettings, recommendedSettings }: FormProps
         {recommendedSettings?.provider && recommendedSettings?.model ? (
           <button className="button secondary" onClick={applyRecommendedSettings} type="button">
             Apply recommended setup
+          </button>
+        ) : null}
+        {recommendedSyntheticBenchmarkSettings?.provider && recommendedSyntheticBenchmarkSettings?.model ? (
+          <button
+            className="button secondary"
+            onClick={applySyntheticBenchmarkRecommendation}
+            type="button"
+          >
+            Apply benchmark winner
           </button>
         ) : null}
         <button
