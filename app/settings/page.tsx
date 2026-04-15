@@ -29,7 +29,12 @@ import { getModelSettings } from "@/lib/server/settings/settings-service";
 
 export const dynamic = "force-dynamic";
 
-export default async function SettingsPage() {
+type SettingsPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function SettingsPage({ searchParams }: SettingsPageProps) {
+  const resolvedSearchParams = (await searchParams) ?? {};
   const settings = await getModelSettings();
   const runtimeDashboard = await getRuntimeUsageDashboard();
   const runtimeComparison = await getRuntimeComparison();
@@ -61,6 +66,10 @@ export default async function SettingsPage() {
     settings,
     syntheticBenchmarkComparison,
   );
+  const applySyntheticBenchmarkWinnerParam = resolvedSearchParams.applySyntheticBenchmarkWinner;
+  const shouldApplySyntheticBenchmarkWinner = Array.isArray(applySyntheticBenchmarkWinnerParam)
+    ? applySyntheticBenchmarkWinnerParam.includes("1")
+    : applySyntheticBenchmarkWinnerParam === "1";
   const syntheticBenchmarkChart = getSyntheticBenchmarkChart(syntheticBenchmarks);
   const syntheticBenchmarkTrend = getSyntheticBenchmarkTrend(
     settings,
@@ -90,6 +99,31 @@ export default async function SettingsPage() {
     trend,
   );
   const providerTip = balancedStandardRecommendation.providerTips[settings.provider];
+  const prefillingSyntheticBenchmarkWinner =
+    shouldApplySyntheticBenchmarkWinner && recommendedSyntheticBenchmarkSetup;
+  const initialFormSettings =
+    prefillingSyntheticBenchmarkWinner
+      ? {
+          ...settings,
+          provider: recommendedSyntheticBenchmarkSetup.provider,
+          model: recommendedSyntheticBenchmarkSetup.model,
+          baseUrl:
+            recommendedSyntheticBenchmarkSetup.provider === settings.provider
+              ? settings.baseUrl
+              : balancedStandardRecommendation.providerTips[
+                  recommendedSyntheticBenchmarkSetup.provider
+                ].recommendedUrl,
+        }
+      : settings;
+  const initialFormStatus =
+    prefillingSyntheticBenchmarkWinner
+      ? {
+          tone: "success" as const,
+          title: "Benchmark winner loaded",
+          message:
+            "We prefilled the fastest controlled benchmarked provider/model into the form. Review the URL if needed, then save settings to keep it.",
+        }
+      : undefined;
 
   return (
     <main className="page-shell">
@@ -122,7 +156,8 @@ export default async function SettingsPage() {
         <article className="card">
           <h2>Model settings</h2>
           <SettingsForm
-            initialSettings={settings}
+            initialSettings={initialFormSettings}
+            initialStatus={initialFormStatus}
             recommendedSettings={
               recommendedSetup
                 ? {

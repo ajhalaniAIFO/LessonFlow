@@ -14,6 +14,9 @@ export type HomeSyntheticBenchmarkSummary = {
   trendHeadline?: string;
   trendSummary?: string;
   chart?: SyntheticBenchmarkChart;
+  actionHref: "/settings" | "/settings?applySyntheticBenchmarkWinner=1";
+  actionLabel: string;
+  actionMessage?: string;
 };
 
 export function getHomeSyntheticBenchmarkSummary(
@@ -35,6 +38,8 @@ export function getHomeSyntheticBenchmarkSummary(
       trendHeadline: trend?.headline,
       trendSummary: trend?.summary,
       chart,
+      actionHref: "/settings",
+      actionLabel: "Open benchmark details",
     };
   }
 
@@ -53,5 +58,14 @@ export function getHomeSyntheticBenchmarkSummary(
     trendHeadline: trend?.headline,
     trendSummary: trend?.summary,
     chart,
+    actionHref: isCurrentBest
+      ? "/settings"
+      : "/settings?applySyntheticBenchmarkWinner=1",
+    actionLabel: isCurrentBest
+      ? "Open benchmark details"
+      : "Review benchmark winner in Settings",
+    actionMessage: isCurrentBest
+      ? undefined
+      : "We can preload the fastest controlled benchmarked provider/model into Settings so you can review it and save explicitly.",
   };
 }
