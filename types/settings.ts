@@ -24,3 +24,13 @@ export type SyntheticBenchmarkRecord = {
   errorMessage?: string;
   createdAt: number;
 };
+
+export type SyntheticBenchmarkComparisonItem = {
+  provider: ModelProvider;
+  model: string;
+  successfulRuns: number;
+  averageDurationMs: number;
+  fastestDurationMs: number;
+  slowestDurationMs: number;
+  latestCreatedAt: number;
+};

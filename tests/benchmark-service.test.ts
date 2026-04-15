@@ -6,6 +6,7 @@ import { resetDatabase } from "@/lib/db/client";
 import * as providerRegistry from "@/lib/server/llm/provider-registry";
 import { AppError } from "@/lib/server/utils/errors";
 import {
+  getSyntheticBenchmarkComparison,
   listSyntheticBenchmarks,
   runSyntheticBenchmark,
 } from "@/lib/server/settings/benchmark-service";
@@ -93,5 +94,59 @@ describe("benchmark-service", () => {
       model: "gemma4",
     });
     expect(history[0]?.status).toBe("error");
+  });
+
+  it("groups successful synthetic benchmarks side by side and ranks faster setups first", async () => {
+    const timings = [1000, 1800, 3000, 4500];
+
+    vi.spyOn(Date, "now").mockImplementation(() => timings.shift() ?? 5000);
+
+    const generateText = vi
+      .fn()
+      .mockResolvedValueOnce({ text: "Benchmark ready." })
+      .mockResolvedValueOnce({ text: "Benchmark ready." })
+      .mockResolvedValueOnce({ text: "Benchmark ready." })
+      .mockResolvedValueOnce({ text: "Benchmark ready." });
+
+    vi.spyOn(providerRegistry, "getProvider").mockReturnValue({
+      healthCheck: vi.fn(),
+      listModels: vi.fn(),
+      generateText,
+      generateStructuredJson: vi.fn(),
+    });
+
+    await runSyntheticBenchmark({
+      provider: "ollama",
+      baseUrl: "http://127.0.0.1:11434",
+      model: "llama3:latest",
+      temperature: 0.4,
+      maxTokens: 2000,
+      timeoutMs: 120000,
+    });
+
+    await runSyntheticBenchmark({
+      provider: "openai_compatible",
+      baseUrl: "http://127.0.0.1:8000/v1",
+      model: "gemma4",
+      temperature: 0.4,
+      maxTokens: 2000,
+      timeoutMs: 120000,
+    });
+
+    const comparison = await getSyntheticBenchmarkComparison();
+
+    expect(comparison).toHaveLength(2);
+    expect(comparison[0]).toMatchObject({
+      provider: "openai_compatible",
+      model: "gemma4",
+      successfulRuns: 1,
+      averageDurationMs: 500,
+    });
+    expect(comparison[1]).toMatchObject({
+      provider: "ollama",
+      model: "llama3:latest",
+      successfulRuns: 1,
+      averageDurationMs: 800,
+    });
   });
 });

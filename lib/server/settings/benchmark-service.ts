@@ -3,7 +3,11 @@ import { getDatabase } from "@/lib/db/client";
 import { getProvider } from "@/lib/server/llm/provider-registry";
 import { parseModelSettings } from "@/lib/server/settings/settings-service";
 import { AppError } from "@/lib/server/utils/errors";
-import type { SyntheticBenchmarkRecord, SyntheticBenchmarkStatus } from "@/types/settings";
+import type {
+  SyntheticBenchmarkComparisonItem,
+  SyntheticBenchmarkRecord,
+  SyntheticBenchmarkStatus,
+} from "@/types/settings";
 
 type BenchmarkRow = {
   id: string;
@@ -147,4 +151,60 @@ export async function listSyntheticBenchmarks(
     .all(limit) as BenchmarkRow[];
 
   return rows.map(mapBenchmark);
+}
+
+export async function getSyntheticBenchmarkComparison(
+  limit = 24,
+): Promise<SyntheticBenchmarkComparisonItem[]> {
+  const rows = await listSyntheticBenchmarks({ limit });
+  const grouped = new Map<string, SyntheticBenchmarkRecord[]>();
+
+  for (const row of rows) {
+    if (row.status !== "success" || typeof row.durationMs !== "number") {
+      continue;
+    }
+
+    const key = `${row.provider}::${row.model}`;
+    const existing = grouped.get(key);
+    if (existing) {
+      existing.push(row);
+    } else {
+      grouped.set(key, [row]);
+    }
+  }
+
+  return Array.from(grouped.entries())
+    .map(([key, records]) => {
+      const [provider, model] = key.split("::") as [
+        SyntheticBenchmarkRecord["provider"],
+        string,
+      ];
+      const durations = records
+        .map((record) => record.durationMs)
+        .filter((duration): duration is number => typeof duration === "number");
+      const averageDurationMs = Math.round(
+        durations.reduce((total, duration) => total + duration, 0) / durations.length,
+      );
+
+      return {
+        provider,
+        model,
+        successfulRuns: records.length,
+        averageDurationMs,
+        fastestDurationMs: Math.min(...durations),
+        slowestDurationMs: Math.max(...durations),
+        latestCreatedAt: Math.max(...records.map((record) => record.createdAt)),
+      };
+    })
+    .sort((left, right) => {
+      if (left.averageDurationMs !== right.averageDurationMs) {
+        return left.averageDurationMs - right.averageDurationMs;
+      }
+
+      if (left.successfulRuns !== right.successfulRuns) {
+        return right.successfulRuns - left.successfulRuns;
+      }
+
+      return right.latestCreatedAt - left.latestCreatedAt;
+    });
 }
