@@ -30,6 +30,13 @@ export function HomeSyntheticBenchmarkSummaryCard({ summary }: Props) {
         ) : null}
       </div>
 
+      {summary.trendHeadline ? (
+        <div className="status-box">
+          <p className="status-title">{summary.trendHeadline}</p>
+          <p className="status-copy">{summary.trendSummary}</p>
+        </div>
+      ) : null}
+
       <div className="button-row">
         <Link className="button secondary" href="/settings">
           Open benchmark details

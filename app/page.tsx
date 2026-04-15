@@ -7,13 +7,17 @@ import { RuntimeAlertCard } from "@/components/home/runtime-alert-card";
 import { RuntimeUsageDashboardCard } from "@/components/home/runtime-usage-dashboard";
 import { getSyntheticBenchmarkAlerts } from "@/lib/runtime/synthetic-benchmark-alerts";
 import { getHomeSyntheticBenchmarkSummary } from "@/lib/runtime/home-synthetic-benchmark-summary";
+import { getSyntheticBenchmarkTrend } from "@/lib/runtime/synthetic-benchmark-trends";
 import { getRuntimeAlerts } from "@/lib/runtime/runtime-alerts";
 import { getHomeRuntimeSummary } from "@/lib/runtime/home-runtime-summary";
 import { getRuntimeTrend } from "@/lib/runtime/runtime-trends";
 import { getRuntimeComparison } from "@/lib/server/lessons/lesson-service";
 import { getRuntimeUsageDashboard, listLessons } from "@/lib/server/lessons/lesson-service";
 import { getHardwareProfile } from "@/lib/runtime/hardware-profile";
-import { getSyntheticBenchmarkComparison } from "@/lib/server/settings/benchmark-service";
+import {
+  getSyntheticBenchmarkComparison,
+  listSyntheticBenchmarks,
+} from "@/lib/server/settings/benchmark-service";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
 
 export const dynamic = "force-dynamic";
@@ -22,13 +26,23 @@ export default async function HomePage() {
   const lessons = await listLessons();
   const runtimeDashboard = await getRuntimeUsageDashboard();
   const runtimeComparison = await getRuntimeComparison();
-  const syntheticBenchmarkComparison = await getSyntheticBenchmarkComparison();
   const settings = await getModelSettings();
+  const syntheticBenchmarks = await listSyntheticBenchmarks({
+    provider: settings.provider,
+    model: settings.model,
+    limit: 6,
+  });
+  const syntheticBenchmarkComparison = await getSyntheticBenchmarkComparison();
   const hardwareProfile = getHardwareProfile();
+  const syntheticBenchmarkTrend = getSyntheticBenchmarkTrend(
+    settings,
+    syntheticBenchmarks,
+  );
   const runtimeSummary = getHomeRuntimeSummary(settings, runtimeDashboard, runtimeComparison);
   const syntheticBenchmarkSummary = getHomeSyntheticBenchmarkSummary(
     settings,
     syntheticBenchmarkComparison,
+    syntheticBenchmarkTrend,
   );
   const runtimeTrend = getRuntimeTrend(
     {
