@@ -30,9 +30,16 @@ export function HomeRuntimeSummaryCard({ summary }: Props) {
         ) : null}
       </div>
 
+      {summary.actionMessage ? (
+        <div className="status-box">
+          <p className="status-title">Recommendation action</p>
+          <p className="status-copy">{summary.actionMessage}</p>
+        </div>
+      ) : null}
+
       <div className="button-row">
-        <Link className="button secondary" href="/settings">
-          Open runtime insights
+        <Link className="button secondary" href={summary.actionHref}>
+          {summary.actionLabel}
         </Link>
       </div>
     </article>
