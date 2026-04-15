@@ -77,9 +77,16 @@ export function HomeSyntheticBenchmarkSummaryCard({ summary }: Props) {
         </div>
       ) : null}
 
+      {summary.actionMessage ? (
+        <div className="status-box">
+          <p className="status-title">Recommendation action</p>
+          <p className="status-copy">{summary.actionMessage}</p>
+        </div>
+      ) : null}
+
       <div className="button-row">
-        <Link className="button secondary" href="/settings">
-          Open benchmark details
+        <Link className="button secondary" href={summary.actionHref}>
+          {summary.actionLabel}
         </Link>
       </div>
     </article>

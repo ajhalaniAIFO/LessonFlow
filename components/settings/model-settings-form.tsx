@@ -35,16 +35,18 @@ type FormProps = {
   initialSettings: ModelSettings;
   recommendedSettings?: Partial<ModelSettings>;
   recommendedSyntheticBenchmarkSettings?: RecommendedSyntheticBenchmarkSetup;
+  initialStatus?: StatusState;
 };
 
 export function SettingsForm({
   initialSettings,
   recommendedSettings,
   recommendedSyntheticBenchmarkSettings,
+  initialStatus,
 }: FormProps) {
   const [form, setForm] = useState<ModelSettings>(initialSettings);
   const [modelOptions, setModelOptions] = useState<ModelInfo[]>([]);
-  const [status, setStatus] = useState<StatusState | null>(null);
+  const [status, setStatus] = useState<StatusState | null>(initialStatus ?? null);
   const [diagnostics, setDiagnostics] = useState<TestResult | null>(null);
   const [isSaving, startSaving] = useTransition();
   const [isTesting, startTesting] = useTransition();

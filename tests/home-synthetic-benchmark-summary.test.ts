@@ -33,6 +33,7 @@ describe("home-synthetic-benchmark-summary", () => {
 
     expect(summary.isCurrentBest).toBe(true);
     expect(summary.headline).toContain("leading");
+    expect(summary.actionHref).toBe("/settings");
   });
 
   it("surfaces a benchmark winner when the current setup is not best", () => {
@@ -56,6 +57,8 @@ describe("home-synthetic-benchmark-summary", () => {
     expect(summary.isCurrentBest).toBe(false);
     expect(summary.benchmarkWinnerLabel).toContain("openai_compatible");
     expect(summary.summary).toContain("fastest");
+    expect(summary.actionHref).toBe("/settings?applySyntheticBenchmarkWinner=1");
+    expect(summary.actionMessage).toContain("preload");
   });
 
   it("carries synthetic trend insight into the home summary when available", () => {
