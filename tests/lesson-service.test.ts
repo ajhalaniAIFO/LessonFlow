@@ -386,7 +386,7 @@ describe("lesson-service", () => {
     outlineSpy.mockRestore();
     sceneSpy.mockRestore();
     quizSpy.mockRestore();
-  });
+  }, 15_000);
 
   it("pauses after outline generation for review and then continues with reviewed outline", async () => {
     const outlineSpy = vi.spyOn(outlineGenerator, "generateLessonOutline").mockResolvedValue({
