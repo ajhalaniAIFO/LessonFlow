@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { HomeUnifiedRecommendationCard } from "@/components/home/home-unified-recommendation-card";
+import { HomeUnifiedRecommendationHistoryCard } from "@/components/home/home-unified-recommendation-history-card";
 import { HomeSyntheticBenchmarkSummaryCard } from "@/components/home/home-synthetic-benchmark-summary-card";
 import { HomeSyntheticBenchmarkComparisonCard } from "@/components/home/home-synthetic-benchmark-comparison-card";
 import { HomeSyntheticBenchmarkHistoryCard } from "@/components/home/home-synthetic-benchmark-history-card";
@@ -15,6 +16,7 @@ import { getHomeSyntheticBenchmarkSummary } from "@/lib/runtime/home-synthetic-b
 import { getHomeSyntheticBenchmarkHistory } from "@/lib/runtime/home-synthetic-benchmark-history";
 import { getHomeUnifiedRecommendation } from "@/lib/runtime/home-unified-recommendations";
 import { getHomeUnifiedRecommendationAlerts } from "@/lib/runtime/home-unified-recommendation-alerts";
+import { getHomeUnifiedRecommendationHistory } from "@/lib/runtime/home-unified-recommendation-history";
 import { getSyntheticBenchmarkTrend } from "@/lib/runtime/synthetic-benchmark-trends";
 import { getRuntimeAlerts } from "@/lib/runtime/runtime-alerts";
 import { getHomeRuntimeSummary } from "@/lib/runtime/home-runtime-summary";
@@ -65,6 +67,11 @@ export default async function HomePage() {
   );
   const unifiedRecommendationAlerts =
     getHomeUnifiedRecommendationAlerts(unifiedRecommendation);
+  const unifiedRecommendationHistory = getHomeUnifiedRecommendationHistory(
+    settings,
+    runtimeDashboard.recentJobs,
+    allSyntheticBenchmarks,
+  );
   const runtimeTrend = getRuntimeTrend(
     {
       provider: settings.provider,
@@ -163,6 +170,10 @@ export default async function HomePage() {
 
       <section style={{ marginTop: "24px" }}>
         <RuntimeAlertCard alerts={unifiedRecommendationAlerts} />
+      </section>
+
+      <section style={{ marginTop: "24px" }}>
+        <HomeUnifiedRecommendationHistoryCard history={unifiedRecommendationHistory} />
       </section>
 
       <section style={{ marginTop: "24px" }}>
