@@ -6,6 +6,7 @@ import { LessonRequestForm } from "@/components/home/lesson-request-form";
 import { RuntimeAlertCard } from "@/components/home/runtime-alert-card";
 import { RuntimeUsageDashboardCard } from "@/components/home/runtime-usage-dashboard";
 import { getSyntheticBenchmarkAlerts } from "@/lib/runtime/synthetic-benchmark-alerts";
+import { getSyntheticBenchmarkChart } from "@/lib/runtime/synthetic-benchmark-chart";
 import { getHomeSyntheticBenchmarkSummary } from "@/lib/runtime/home-synthetic-benchmark-summary";
 import { getSyntheticBenchmarkTrend } from "@/lib/runtime/synthetic-benchmark-trends";
 import { getRuntimeAlerts } from "@/lib/runtime/runtime-alerts";
@@ -38,11 +39,13 @@ export default async function HomePage() {
     settings,
     syntheticBenchmarks,
   );
+  const syntheticBenchmarkChart = getSyntheticBenchmarkChart(syntheticBenchmarks);
   const runtimeSummary = getHomeRuntimeSummary(settings, runtimeDashboard, runtimeComparison);
   const syntheticBenchmarkSummary = getHomeSyntheticBenchmarkSummary(
     settings,
     syntheticBenchmarkComparison,
     syntheticBenchmarkTrend,
+    syntheticBenchmarkChart,
   );
   const runtimeTrend = getRuntimeTrend(
     {

@@ -37,6 +37,46 @@ export function HomeSyntheticBenchmarkSummaryCard({ summary }: Props) {
         </div>
       ) : null}
 
+      {summary.chart?.label === "ready" ? (
+        <div className="status-box">
+          <p className="status-title">{summary.chart.headline}</p>
+          <p className="status-copy">{summary.chart.summary}</p>
+          <div className="runtime-comparison-chart-shell">
+            <svg
+              className="runtime-comparison-chart"
+              viewBox="0 0 100 28"
+              preserveAspectRatio="none"
+              role="img"
+              aria-label="Home synthetic benchmark chart"
+            >
+              <polyline
+                className="runtime-comparison-chart-line"
+                points={summary.chart.points.map((point) => `${point.x},${point.y}`).join(" ")}
+              />
+              {summary.chart.points.map((point) => (
+                <circle
+                  key={point.benchmarkId}
+                  className="runtime-comparison-chart-point"
+                  cx={point.x}
+                  cy={point.y}
+                  r="1.8"
+                />
+              ))}
+            </svg>
+          </div>
+          <div className="runtime-summary-grid">
+            <div className="runtime-summary-item">
+              <strong>Fastest</strong>
+              <small>{summary.chart.minLabel}</small>
+            </div>
+            <div className="runtime-summary-item">
+              <strong>Slowest</strong>
+              <small>{summary.chart.maxLabel}</small>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="button-row">
         <Link className="button secondary" href="/settings">
           Open benchmark details

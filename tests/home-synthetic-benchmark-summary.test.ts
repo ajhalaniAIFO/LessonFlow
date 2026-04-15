@@ -73,4 +73,26 @@ describe("home-synthetic-benchmark-summary", () => {
     expect(summary.trendHeadline).toContain("stable");
     expect(summary.trendSummary).toContain("controlled benchmark runs");
   });
+
+  it("carries synthetic chart insight into the home summary when available", () => {
+    const summary = getHomeSyntheticBenchmarkSummary(
+      { provider: "ollama", model: "llama3:latest" },
+      [],
+      undefined,
+      {
+        label: "ready",
+        headline: "Synthetic benchmark chart",
+        summary: "Recent successful controlled benchmark runs for the current provider/model, shown oldest to newest.",
+        minLabel: "2.0s",
+        maxLabel: "4.0s",
+        points: [
+          { benchmarkId: "one", x: 0, y: 28, durationMs: 4000, createdAt: 1 },
+          { benchmarkId: "two", x: 100, y: 4, durationMs: 2000, createdAt: 2 },
+        ],
+      },
+    );
+
+    expect(summary.chart?.label).toBe("ready");
+    expect(summary.chart?.points).toHaveLength(2);
+  });
 });
