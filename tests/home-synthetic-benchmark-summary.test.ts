@@ -57,4 +57,20 @@ describe("home-synthetic-benchmark-summary", () => {
     expect(summary.benchmarkWinnerLabel).toContain("openai_compatible");
     expect(summary.summary).toContain("fastest");
   });
+
+  it("carries synthetic trend insight into the home summary when available", () => {
+    const summary = getHomeSyntheticBenchmarkSummary(
+      { provider: "ollama", model: "llama3:latest" },
+      [],
+      {
+        label: "stable",
+        headline: "Synthetic benchmarks look stable",
+        summary: "Recent controlled benchmark runs are close enough to suggest a stable performance pattern.",
+        details: [],
+      },
+    );
+
+    expect(summary.trendHeadline).toContain("stable");
+    expect(summary.trendSummary).toContain("controlled benchmark runs");
+  });
 });

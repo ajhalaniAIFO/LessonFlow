@@ -1,3 +1,4 @@
+import type { RuntimeTrend } from "@/lib/runtime/runtime-trends";
 import type { ModelSettings, SyntheticBenchmarkComparisonItem } from "@/types/settings";
 
 export type HomeSyntheticBenchmarkSummary = {
@@ -6,11 +7,14 @@ export type HomeSyntheticBenchmarkSummary = {
   currentSetupLabel: string;
   benchmarkWinnerLabel?: string;
   isCurrentBest: boolean;
+  trendHeadline?: string;
+  trendSummary?: string;
 };
 
 export function getHomeSyntheticBenchmarkSummary(
   settings: Pick<ModelSettings, "provider" | "model">,
   comparisonItems: SyntheticBenchmarkComparisonItem[],
+  trend?: RuntimeTrend,
 ): HomeSyntheticBenchmarkSummary {
   const currentSetupLabel = `${settings.provider} | ${settings.model || "model not set"}`;
   const best = comparisonItems[0];
@@ -22,6 +26,8 @@ export function getHomeSyntheticBenchmarkSummary(
         "We do not have enough controlled benchmark history yet to compare your current setup against a benchmark winner.",
       currentSetupLabel,
       isCurrentBest: false,
+      trendHeadline: trend?.headline,
+      trendSummary: trend?.summary,
     };
   }
 
@@ -37,5 +43,7 @@ export function getHomeSyntheticBenchmarkSummary(
     currentSetupLabel,
     benchmarkWinnerLabel: `${best.provider} | ${best.model}`,
     isCurrentBest,
+    trendHeadline: trend?.headline,
+    trendSummary: trend?.summary,
   };
 }
