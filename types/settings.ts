@@ -39,3 +39,20 @@ export type RecommendedSyntheticBenchmarkSetup = {
   provider: ModelProvider;
   model: string;
 };
+
+export type SyntheticBenchmarkChartPoint = {
+  benchmarkId: string;
+  x: number;
+  y: number;
+  durationMs: number;
+  createdAt: number;
+};
+
+export type SyntheticBenchmarkChart = {
+  label: "ready" | "empty";
+  headline: string;
+  summary: string;
+  minLabel?: string;
+  maxLabel?: string;
+  points: SyntheticBenchmarkChartPoint[];
+};
