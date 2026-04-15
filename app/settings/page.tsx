@@ -16,6 +16,7 @@ import { getRecommendedSyntheticBenchmarkSetup } from "@/lib/runtime/synthetic-b
 import { getRuntimeBenchmark } from "@/lib/runtime/runtime-benchmarking";
 import { getRuntimeHistory } from "@/lib/runtime/runtime-history";
 import { getHardwareAwareRuntimeRecommendation } from "@/lib/runtime/runtime-recommendations";
+import { getSyntheticBenchmarkTrend } from "@/lib/runtime/synthetic-benchmark-trends";
 import { getRuntimeTrend } from "@/lib/runtime/runtime-trends";
 import { getRuntimeComparison, getRuntimeUsageDashboard } from "@/lib/server/lessons/lesson-service";
 import {
@@ -57,6 +58,10 @@ export default async function SettingsPage() {
   const syntheticBenchmarkAlerts = getSyntheticBenchmarkAlerts(
     settings,
     syntheticBenchmarkComparison,
+  );
+  const syntheticBenchmarkTrend = getSyntheticBenchmarkTrend(
+    settings,
+    syntheticBenchmarks,
   );
   const trend = getRuntimeTrend(
     {
@@ -173,6 +178,7 @@ export default async function SettingsPage() {
           <RuntimeTrendCard trend={trend} />
           <RuntimeHistoryCard history={history} />
           <SettingsRuntimeAlertCard alerts={syntheticBenchmarkAlerts} />
+          <RuntimeTrendCard trend={syntheticBenchmarkTrend} />
           <SyntheticBenchmarkComparisonCard items={syntheticBenchmarkComparison} />
           <SyntheticBenchmarkHistoryCard benchmarks={syntheticBenchmarks} />
           <RuntimeComparisonCard items={runtimeComparison} charts={runtimeComparisonCharts} />
