@@ -4,6 +4,7 @@ import { RuntimeBenchmarkCard } from "@/components/settings/runtime-benchmark-ca
 import { SettingsRuntimeAlertCard } from "@/components/settings/runtime-alert-card";
 import { RuntimeComparisonCard } from "@/components/settings/runtime-comparison-card";
 import { RuntimeHistoryCard } from "@/components/settings/runtime-history-card";
+import { SyntheticBenchmarkComparisonCard } from "@/components/settings/synthetic-benchmark-comparison-card";
 import { SyntheticBenchmarkHistoryCard } from "@/components/settings/synthetic-benchmark-history-card";
 import { RuntimeTrendCard } from "@/components/settings/runtime-trend-card";
 import { getRuntimeAlerts } from "@/lib/runtime/runtime-alerts";
@@ -15,7 +16,10 @@ import { getRuntimeHistory } from "@/lib/runtime/runtime-history";
 import { getHardwareAwareRuntimeRecommendation } from "@/lib/runtime/runtime-recommendations";
 import { getRuntimeTrend } from "@/lib/runtime/runtime-trends";
 import { getRuntimeComparison, getRuntimeUsageDashboard } from "@/lib/server/lessons/lesson-service";
-import { listSyntheticBenchmarks } from "@/lib/server/settings/benchmark-service";
+import {
+  getSyntheticBenchmarkComparison,
+  listSyntheticBenchmarks,
+} from "@/lib/server/settings/benchmark-service";
 import { getModelSettings } from "@/lib/server/settings/settings-service";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +33,7 @@ export default async function SettingsPage() {
     model: settings.model,
     limit: 5,
   });
+  const syntheticBenchmarkComparison = await getSyntheticBenchmarkComparison();
   const runtimeComparisonCharts = getRuntimeComparisonCharts(runtimeDashboard.recentJobs);
   const hardwareProfile = getHardwareProfile();
   const balancedStandardRecommendation = getHardwareAwareRuntimeRecommendation(
@@ -158,6 +163,7 @@ export default async function SettingsPage() {
           <SettingsRuntimeAlertCard alerts={runtimeAlerts} />
           <RuntimeTrendCard trend={trend} />
           <RuntimeHistoryCard history={history} />
+          <SyntheticBenchmarkComparisonCard items={syntheticBenchmarkComparison} />
           <SyntheticBenchmarkHistoryCard benchmarks={syntheticBenchmarks} />
           <RuntimeComparisonCard items={runtimeComparison} charts={runtimeComparisonCharts} />
         </aside>
