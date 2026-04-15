@@ -11,6 +11,7 @@ import { getRuntimeAlerts } from "@/lib/runtime/runtime-alerts";
 import { getRuntimeComparisonCharts } from "@/lib/runtime/runtime-comparison-chart";
 import { getHardwareProfile } from "@/lib/runtime/hardware-profile";
 import { getRecommendedRuntimeSetup } from "@/lib/runtime/runtime-comparison";
+import { getSyntheticBenchmarkAlerts } from "@/lib/runtime/synthetic-benchmark-alerts";
 import { getRecommendedSyntheticBenchmarkSetup } from "@/lib/runtime/synthetic-benchmark-comparison";
 import { getRuntimeBenchmark } from "@/lib/runtime/runtime-benchmarking";
 import { getRuntimeHistory } from "@/lib/runtime/runtime-history";
@@ -53,6 +54,10 @@ export default async function SettingsPage() {
   const recommendedSetup = getRecommendedRuntimeSetup(runtimeComparison);
   const recommendedSyntheticBenchmarkSetup =
     getRecommendedSyntheticBenchmarkSetup(syntheticBenchmarkComparison);
+  const syntheticBenchmarkAlerts = getSyntheticBenchmarkAlerts(
+    settings,
+    syntheticBenchmarkComparison,
+  );
   const trend = getRuntimeTrend(
     {
       provider: settings.provider,
@@ -167,6 +172,7 @@ export default async function SettingsPage() {
           <SettingsRuntimeAlertCard alerts={runtimeAlerts} />
           <RuntimeTrendCard trend={trend} />
           <RuntimeHistoryCard history={history} />
+          <SettingsRuntimeAlertCard alerts={syntheticBenchmarkAlerts} />
           <SyntheticBenchmarkComparisonCard items={syntheticBenchmarkComparison} />
           <SyntheticBenchmarkHistoryCard benchmarks={syntheticBenchmarks} />
           <RuntimeComparisonCard items={runtimeComparison} charts={runtimeComparisonCharts} />
