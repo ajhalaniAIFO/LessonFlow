@@ -66,6 +66,10 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     settings,
     syntheticBenchmarkComparison,
   );
+  const applyRecommendedRuntimeSetupParam = resolvedSearchParams.applyRecommendedRuntimeSetup;
+  const shouldApplyRecommendedRuntimeSetup = Array.isArray(applyRecommendedRuntimeSetupParam)
+    ? applyRecommendedRuntimeSetupParam.includes("1")
+    : applyRecommendedRuntimeSetupParam === "1";
   const applySyntheticBenchmarkWinnerParam = resolvedSearchParams.applySyntheticBenchmarkWinner;
   const shouldApplySyntheticBenchmarkWinner = Array.isArray(applySyntheticBenchmarkWinnerParam)
     ? applySyntheticBenchmarkWinnerParam.includes("1")
@@ -99,10 +103,24 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     trend,
   );
   const providerTip = balancedStandardRecommendation.providerTips[settings.provider];
+  const prefillingObservedRecommendedSetup =
+    shouldApplyRecommendedRuntimeSetup && recommendedSetup;
   const prefillingSyntheticBenchmarkWinner =
     shouldApplySyntheticBenchmarkWinner && recommendedSyntheticBenchmarkSetup;
   const initialFormSettings =
-    prefillingSyntheticBenchmarkWinner
+    prefillingObservedRecommendedSetup
+      ? {
+          ...settings,
+          provider: recommendedSetup.provider,
+          model: recommendedSetup.model,
+          baseUrl:
+            recommendedSetup.provider === settings.provider
+              ? settings.baseUrl
+              : balancedStandardRecommendation.providerTips[
+                  recommendedSetup.provider
+                ].recommendedUrl,
+        }
+      : prefillingSyntheticBenchmarkWinner
       ? {
           ...settings,
           provider: recommendedSyntheticBenchmarkSetup.provider,
@@ -116,7 +134,14 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         }
       : settings;
   const initialFormStatus =
-    prefillingSyntheticBenchmarkWinner
+    prefillingObservedRecommendedSetup
+      ? {
+          tone: "success" as const,
+          title: "Recommended runtime loaded",
+          message:
+            "We prefilled the strongest recent observed provider/model into the form. Review the URL if needed, then save settings to keep it.",
+        }
+      : prefillingSyntheticBenchmarkWinner
       ? {
           tone: "success" as const,
           title: "Benchmark winner loaded",

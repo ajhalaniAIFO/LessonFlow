@@ -59,6 +59,7 @@ describe("home-runtime-summary", () => {
 
     expect(summary.isCurrentBest).toBe(true);
     expect(summary.headline).toContain("leading");
+    expect(summary.actionHref).toBe("/settings");
   });
 
   it("surfaces a stronger recent setup when the current setup is not best", () => {
@@ -97,5 +98,7 @@ describe("home-runtime-summary", () => {
     expect(summary.isCurrentBest).toBe(false);
     expect(summary.bestSetupLabel).toContain("openai_compatible");
     expect(summary.summary).toContain("outperforming");
+    expect(summary.actionHref).toBe("/settings?applyRecommendedRuntimeSetup=1");
+    expect(summary.actionMessage).toContain("preload");
   });
 });

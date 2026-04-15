@@ -11,6 +11,9 @@ export type HomeRuntimeSummary = {
   bestSetupLabel?: string;
   bestAverageLabel?: string;
   isCurrentBest: boolean;
+  actionHref: "/settings" | "/settings?applyRecommendedRuntimeSetup=1";
+  actionLabel: string;
+  actionMessage?: string;
 };
 
 export function getHomeRuntimeSummary(
@@ -43,6 +46,8 @@ export function getHomeRuntimeSummary(
       currentSetupLabel,
       currentAverageLabel: formatTelemetryDuration(currentAverage),
       isCurrentBest: false,
+      actionHref: "/settings",
+      actionLabel: "Open runtime insights",
     };
   }
 
@@ -60,5 +65,14 @@ export function getHomeRuntimeSummary(
     bestSetupLabel: `${best.runtimeProvider} | ${best.runtimeModel}`,
     bestAverageLabel: formatTelemetryDuration(best.averageTotalMs),
     isCurrentBest,
+    actionHref: isCurrentBest
+      ? "/settings"
+      : "/settings?applyRecommendedRuntimeSetup=1",
+    actionLabel: isCurrentBest
+      ? "Open runtime insights"
+      : "Review recommended runtime in Settings",
+    actionMessage: isCurrentBest
+      ? undefined
+      : "We can preload the strongest recent observed provider/model into Settings so you can review it and save explicitly.",
   };
 }
