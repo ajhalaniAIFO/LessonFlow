@@ -5,6 +5,7 @@ import { LessonLibrary } from "@/components/home/lesson-library";
 import { LessonRequestForm } from "@/components/home/lesson-request-form";
 import { RuntimeAlertCard } from "@/components/home/runtime-alert-card";
 import { RuntimeUsageDashboardCard } from "@/components/home/runtime-usage-dashboard";
+import { getSyntheticBenchmarkAlerts } from "@/lib/runtime/synthetic-benchmark-alerts";
 import { getHomeSyntheticBenchmarkSummary } from "@/lib/runtime/home-synthetic-benchmark-summary";
 import { getRuntimeAlerts } from "@/lib/runtime/runtime-alerts";
 import { getHomeRuntimeSummary } from "@/lib/runtime/home-runtime-summary";
@@ -51,6 +52,10 @@ export default async function HomePage() {
     runtimeDashboard,
     runtimeComparison,
     runtimeTrend,
+  );
+  const syntheticBenchmarkAlerts = getSyntheticBenchmarkAlerts(
+    settings,
+    syntheticBenchmarkComparison,
   );
 
   return (
@@ -127,6 +132,10 @@ export default async function HomePage() {
 
       <section style={{ marginTop: "24px" }}>
         <RuntimeAlertCard alerts={runtimeAlerts} />
+      </section>
+
+      <section style={{ marginTop: "24px" }}>
+        <RuntimeAlertCard alerts={syntheticBenchmarkAlerts} />
       </section>
 
       <section style={{ marginTop: "24px" }}>
