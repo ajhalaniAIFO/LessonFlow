@@ -4,6 +4,7 @@ import { LessonSummaryActions } from "@/components/lesson/lesson-summary-actions
 import { QuizSceneClient } from "@/components/lesson/quiz-scene-client";
 import { RegenerateLessonButton } from "@/components/lesson/regenerate-lesson-button";
 import { RegenerateSceneButton } from "@/components/lesson/regenerate-scene-button";
+import { SceneAudioPlayer } from "@/components/lesson/scene-audio-player";
 import { SceneProgressTracker } from "@/components/lesson/scene-progress-tracker";
 import { SourceTraceCard } from "@/components/lesson/source-trace-card";
 import { TutorChatClient } from "@/components/lesson/tutor-chat-client";
@@ -14,6 +15,7 @@ import {
   getSceneProgressLabel,
   resolveSceneIndex,
 } from "@/lib/server/lessons/scene-navigation";
+import { buildLessonSceneNarration } from "@/lib/server/lessons/scene-audio";
 import { getGenerationModeDefinition } from "@/lib/server/lessons/generation-mode";
 import { getLessonById } from "@/lib/server/lessons/lesson-service";
 
@@ -198,6 +200,10 @@ export default async function LessonPage({
                 ) : null}
                 {"content" in activeScene && activeScene.content && "summary" in activeScene.content ? (
                   <>
+                    <SceneAudioPlayer
+                      title={activeScene.title}
+                      text={buildLessonSceneNarration(activeScene.title, activeScene.content)}
+                    />
                     <p>{activeScene.content.summary}</p>
                     {activeScene.content.sections.map((section) => (
                       <div key={section.heading} className="scene-section">

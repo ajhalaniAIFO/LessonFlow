@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SceneAudioPlayer } from "@/components/lesson/scene-audio-player";
 import { SourceTraceCard } from "@/components/lesson/source-trace-card";
+import { buildQuizSceneNarration } from "@/lib/server/lessons/scene-audio";
 import type { ApiResponse } from "@/types/api";
 import type { QuizAnswerResult, QuizAttempt, QuizSceneContent } from "@/types/scene";
 
@@ -89,6 +91,7 @@ export function QuizSceneClient({ lessonId, sceneId, title, content }: Props) {
   return (
     <article style={{ marginBottom: "20px" }}>
       <h3>{title}</h3>
+      <SceneAudioPlayer title={title} text={buildQuizSceneNarration(title, content)} />
       {content.questions.map((question, index) => {
         const questionResult = result?.results.find((item) => item.questionId === question.id);
         return (
