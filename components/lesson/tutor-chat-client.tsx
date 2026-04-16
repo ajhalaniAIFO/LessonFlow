@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  AUDIO_PREFERENCES_KEY,
+  DEFAULT_AUDIO_PREFERENCES,
+  parseAudioPreferences,
+} from "@/lib/runtime/audio-preferences";
 import { getSpeechRecognitionSupport } from "@/lib/runtime/speech-recognition";
+import { canPlayTutorReply, getTutorReplyAudioSupport } from "@/lib/runtime/tutor-reply-audio";
 import type { ApiResponse } from "@/types/api";
 import type { ChatMessage } from "@/types/chat";
 import type { Scene } from "@/types/scene";
@@ -56,8 +62,14 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
   const [speechSupported, setSpeechSupported] = useState(false);
   const [speechMessage, setSpeechMessage] = useState("Checking browser voice input support...");
   const [isListening, setIsListening] = useState(false);
+  const [replyAudioSupported, setReplyAudioSupported] = useState(false);
+  const [replyAudioMessage, setReplyAudioMessage] = useState("Checking tutor reply audio support...");
+  const [activeReplyAudioId, setActiveReplyAudioId] = useState<string | null>(null);
   const [selectedSceneId, setSelectedSceneId] = useState<string>(activeSceneId ?? scenes[0]?.id ?? "");
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
+  const replyUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const replyVoiceURIRef = useRef(DEFAULT_AUDIO_PREFERENCES.voiceURI);
+  const replyRateRef = useRef(DEFAULT_AUDIO_PREFERENCES.rate);
 
   useEffect(() => {
     if (!selectedSceneId && scenes[0]?.id) {
@@ -97,61 +109,74 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
       return;
     }
 
-    const support = getSpeechRecognitionSupport(window as BrowserWindowWithSpeech);
-    setSpeechSupported(support.supported);
-    setSpeechMessage(support.message);
-
-    if (!support.supported) {
-      recognitionRef.current = null;
-      return;
-    }
-
-    const BrowserRecognition =
-      support.implementationName === "SpeechRecognition"
-        ? (window as BrowserWindowWithSpeech).SpeechRecognition
-        : (window as BrowserWindowWithSpeech).webkitSpeechRecognition;
-
-    if (!BrowserRecognition) {
-      recognitionRef.current = null;
-      return;
-    }
-
-    const recognition = new BrowserRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
-    recognition.onresult = (event) => {
-      const transcript = Array.from(event.results)
-        .slice(event.resultIndex)
-        .map((result) => result[0]?.transcript ?? "")
-        .join(" ")
-        .trim();
-
-      if (!transcript) {
-        return;
+    try {
+      const storedPreferences = window.localStorage.getItem(AUDIO_PREFERENCES_KEY);
+      if (storedPreferences) {
+        const parsed = parseAudioPreferences(JSON.parse(storedPreferences));
+        replyVoiceURIRef.current = parsed.voiceURI;
+        replyRateRef.current = parsed.rate;
       }
+    } catch {
+      replyVoiceURIRef.current = DEFAULT_AUDIO_PREFERENCES.voiceURI;
+      replyRateRef.current = DEFAULT_AUDIO_PREFERENCES.rate;
+    }
 
-      setDraft((current) => {
-        const base = current.trim();
-        return base ? `${base} ${transcript}`.trim() : transcript;
-      });
-    };
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-    recognition.onerror = (event) => {
-      setIsListening(false);
-      setError(
-        event.error === "not-allowed"
-          ? "Microphone access was denied. You can still type your question."
-          : "Voice input stopped unexpectedly. You can try again or type your question.",
-      );
-    };
+    const speechSupport = getSpeechRecognitionSupport(window as BrowserWindowWithSpeech);
+    setSpeechSupported(speechSupport.supported);
+    setSpeechMessage(speechSupport.message);
 
-    recognitionRef.current = recognition;
+    const replySupport = getTutorReplyAudioSupport(window);
+    setReplyAudioSupported(replySupport.supported);
+    setReplyAudioMessage(replySupport.message);
+
+    if (speechSupport.supported) {
+      const BrowserRecognition =
+        speechSupport.implementationName === "SpeechRecognition"
+          ? (window as BrowserWindowWithSpeech).SpeechRecognition
+          : (window as BrowserWindowWithSpeech).webkitSpeechRecognition;
+
+      if (BrowserRecognition) {
+        const recognition = new BrowserRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = "en-US";
+        recognition.onresult = (event) => {
+          const transcript = Array.from(event.results)
+            .slice(event.resultIndex)
+            .map((result) => result[0]?.transcript ?? "")
+            .join(" ")
+            .trim();
+
+          if (!transcript) {
+            return;
+          }
+
+          setDraft((current) => {
+            const base = current.trim();
+            return base ? `${base} ${transcript}`.trim() : transcript;
+          });
+        };
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+        recognition.onerror = (event) => {
+          setIsListening(false);
+          setError(
+            event.error === "not-allowed"
+              ? "Microphone access was denied. You can still type your question."
+              : "Voice input stopped unexpectedly. You can try again or type your question.",
+          );
+        };
+
+        recognitionRef.current = recognition;
+      }
+    }
 
     return () => {
-      recognition.stop();
+      recognitionRef.current?.stop();
+      window.speechSynthesis?.cancel();
+      replyUtteranceRef.current = null;
+      setActiveReplyAudioId(null);
       recognitionRef.current = null;
     };
   }, []);
@@ -216,6 +241,44 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
     setIsListening(true);
   }
 
+  function handleReplyAudioPlayback(message: ChatMessage) {
+    if (typeof window === "undefined" || !replyAudioSupported || !canPlayTutorReply(message.role, message.content)) {
+      return;
+    }
+
+    const synth = window.speechSynthesis;
+
+    if (activeReplyAudioId === message.id) {
+      synth.cancel();
+      replyUtteranceRef.current = null;
+      setActiveReplyAudioId(null);
+      return;
+    }
+
+    synth.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(message.content);
+    const availableVoices = synth.getVoices();
+    const preferredVoice = availableVoices.find((voice) => voice.voiceURI === replyVoiceURIRef.current);
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+    utterance.rate = Number(replyRateRef.current);
+    utterance.onend = () => {
+      replyUtteranceRef.current = null;
+      setActiveReplyAudioId(null);
+    };
+    utterance.onerror = () => {
+      replyUtteranceRef.current = null;
+      setActiveReplyAudioId(null);
+      setError("Tutor reply playback stopped unexpectedly. You can try again.");
+    };
+
+    replyUtteranceRef.current = utterance;
+    setActiveReplyAudioId(message.id);
+    synth.speak(utterance);
+  }
+
   return (
     <section className="card" style={{ marginTop: "24px" }}>
       <h2>Ask the tutor</h2>
@@ -237,10 +300,22 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
             <p className="status-copy">Ask a question about the lesson, with extra focus on the selected scene.</p>
           ) : (
             messages.map((message) => (
-              <div key={message.id} style={{ marginBottom: "12px" }}>
-                <p className="status-title" style={{ marginBottom: "4px" }}>
-                  {message.role === "assistant" ? "Tutor" : "You"}
-                </p>
+              <div key={message.id} className="tutor-message-row">
+                <div className="tutor-message-header">
+                  <p className="status-title" style={{ marginBottom: "4px" }}>
+                    {message.role === "assistant" ? "Tutor" : "You"}
+                  </p>
+                  {canPlayTutorReply(message.role, message.content) ? (
+                    <button
+                      className="button secondary tutor-message-audio-button"
+                      type="button"
+                      onClick={() => handleReplyAudioPlayback(message)}
+                      disabled={!replyAudioSupported}
+                    >
+                      {activeReplyAudioId === message.id ? "Stop reply audio" : "Listen to reply"}
+                    </button>
+                  ) : null}
+                </div>
                 {message.sceneId ? (
                   <p className="field-hint" style={{ margin: "0 0 4px" }}>
                     Focused on {scenes.find((scene) => scene.id === message.sceneId)?.title ?? "selected scene"}
@@ -269,6 +344,7 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
             placeholder="What part of this lesson should I focus on first?"
           />
           <span className="field-hint">{speechMessage}</span>
+          <span className="field-hint">{replyAudioMessage}</span>
         </div>
 
         <div className="button-row">
@@ -293,7 +369,7 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
         {isListening ? (
           <div className="status-box">
             <p className="status-title">Listening...</p>
-            <p className="status-copy">Speak naturally and we’ll place the transcript into your draft.</p>
+            <p className="status-copy">Speak naturally and we'll place the transcript into your draft.</p>
           </div>
         ) : null}
 
