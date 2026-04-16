@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { InteractiveBlockCard } from "@/components/lesson/interactive-block-card";
+import { LessonAudioPlaylist } from "@/components/lesson/lesson-audio-playlist";
 import { LessonSummaryActions } from "@/components/lesson/lesson-summary-actions";
 import { QuizSceneClient } from "@/components/lesson/quiz-scene-client";
 import { RegenerateLessonButton } from "@/components/lesson/regenerate-lesson-button";
@@ -16,6 +17,7 @@ import {
   resolveSceneIndex,
 } from "@/lib/server/lessons/scene-navigation";
 import { buildLessonSceneNarration } from "@/lib/server/lessons/scene-audio";
+import { buildLessonAudioPlaylist } from "@/lib/server/lessons/lesson-audio-playlist";
 import { getGenerationModeDefinition } from "@/lib/server/lessons/generation-mode";
 import { getLessonById } from "@/lib/server/lessons/lesson-service";
 
@@ -45,6 +47,7 @@ export default async function LessonPage({
   const activeSceneStep = activeSceneIndex + 1;
   const generationMode = getGenerationModeDefinition(lesson.generationMode);
   const formatAwareCopy = getFormatAwareCopy(lesson.lessonFormat);
+  const audioPlaylist = buildLessonAudioPlaylist(lesson.scenes);
   const focusCard = activeScene ? formatAwareCopy.focusCard(activeScene) : null;
   const actionBlock = activeScene ? formatAwareCopy.actionBlock?.(activeScene) : null;
   const checkpointBlock = activeScene ? formatAwareCopy.checkpointBlock?.(activeScene) : null;
@@ -161,6 +164,11 @@ export default async function LessonPage({
               <article className="scene-article">
                 <h3>{activeScene.title}</h3>
                 <RegenerateSceneButton lessonId={lesson.id} sceneId={activeScene.id} />
+                <LessonAudioPlaylist
+                  lessonId={lesson.id}
+                  activeSceneId={activeScene?.id}
+                  entries={audioPlaylist}
+                />
                 {focusCard ? (
                   <div className={`format-focus-card ${lesson.lessonFormat}`}>
                     <p className="format-focus-title">{focusCard.title}</p>
