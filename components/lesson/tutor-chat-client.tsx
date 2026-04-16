@@ -1,9 +1,46 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { getSpeechRecognitionSupport } from "@/lib/runtime/speech-recognition";
 import type { ApiResponse } from "@/types/api";
 import type { ChatMessage } from "@/types/chat";
 import type { Scene } from "@/types/scene";
+
+type BrowserSpeechRecognition = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onend: (() => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+};
+
+type SpeechRecognitionResultLike = {
+  transcript: string;
+};
+
+type SpeechRecognitionEventLike = {
+  resultIndex: number;
+  results: ArrayLike<
+    ArrayLike<SpeechRecognitionResultLike> & {
+      isFinal?: boolean;
+    }
+  >;
+};
+
+type SpeechRecognitionErrorEventLike = {
+  error: string;
+};
+
+type BrowserSpeechRecognitionConstructor = new () => BrowserSpeechRecognition;
+
+type BrowserWindowWithSpeech = Window &
+  typeof globalThis & {
+    SpeechRecognition?: BrowserSpeechRecognitionConstructor;
+    webkitSpeechRecognition?: BrowserSpeechRecognitionConstructor;
+  };
 
 type Props = {
   lessonId: string;
@@ -16,7 +53,11 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [speechMessage, setSpeechMessage] = useState("Checking browser voice input support...");
+  const [isListening, setIsListening] = useState(false);
   const [selectedSceneId, setSelectedSceneId] = useState<string>(activeSceneId ?? scenes[0]?.id ?? "");
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
 
   useEffect(() => {
     if (!selectedSceneId && scenes[0]?.id) {
@@ -51,7 +92,76 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
     };
   }, [lessonId, selectedSceneId]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const support = getSpeechRecognitionSupport(window as BrowserWindowWithSpeech);
+    setSpeechSupported(support.supported);
+    setSpeechMessage(support.message);
+
+    if (!support.supported) {
+      recognitionRef.current = null;
+      return;
+    }
+
+    const BrowserRecognition =
+      support.implementationName === "SpeechRecognition"
+        ? (window as BrowserWindowWithSpeech).SpeechRecognition
+        : (window as BrowserWindowWithSpeech).webkitSpeechRecognition;
+
+    if (!BrowserRecognition) {
+      recognitionRef.current = null;
+      return;
+    }
+
+    const recognition = new BrowserRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .slice(event.resultIndex)
+        .map((result) => result[0]?.transcript ?? "")
+        .join(" ")
+        .trim();
+
+      if (!transcript) {
+        return;
+      }
+
+      setDraft((current) => {
+        const base = current.trim();
+        return base ? `${base} ${transcript}`.trim() : transcript;
+      });
+    };
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+    recognition.onerror = (event) => {
+      setIsListening(false);
+      setError(
+        event.error === "not-allowed"
+          ? "Microphone access was denied. You can still type your question."
+          : "Voice input stopped unexpectedly. You can try again or type your question.",
+      );
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      recognition.stop();
+      recognitionRef.current = null;
+    };
+  }, []);
+
   async function handleSend() {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
+
     setIsSending(true);
     setError(null);
 
@@ -87,6 +197,23 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
       payload.data.message,
     ]);
     setDraft("");
+  }
+
+  function handleVoiceInput() {
+    setError(null);
+
+    if (!speechSupported || !recognitionRef.current) {
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      return;
+    }
+
+    recognitionRef.current.start();
+    setIsListening(true);
   }
 
   return (
@@ -141,9 +268,18 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
             }}
             placeholder="What part of this lesson should I focus on first?"
           />
+          <span className="field-hint">{speechMessage}</span>
         </div>
 
         <div className="button-row">
+          <button
+            className="button secondary"
+            type="button"
+            onClick={handleVoiceInput}
+            disabled={!speechSupported || isSending}
+          >
+            {isListening ? "Stop voice input" : "Use voice input"}
+          </button>
           <button
             className="button primary"
             type="button"
@@ -153,6 +289,13 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
             {isSending ? "Thinking..." : "Send question"}
           </button>
         </div>
+
+        {isListening ? (
+          <div className="status-box">
+            <p className="status-title">Listening...</p>
+            <p className="status-copy">Speak naturally and we’ll place the transcript into your draft.</p>
+          </div>
+        ) : null}
 
         {error ? (
           <div className="status-box error">
