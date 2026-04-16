@@ -611,6 +611,22 @@ select {
   }
 }
 
+.tutor-message-row {
+  margin-bottom: 12px;
+}
+
+.tutor-message-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tutor-message-audio-button {
+  padding: 8px 12px;
+}
+
 .format-focus-card {
   display: grid;
   gap: 10px;
