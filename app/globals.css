@@ -595,6 +595,23 @@ select {
   flex-wrap: wrap;
 }
 
+.lesson-audio-playlist-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(32, 82, 214, 0.18);
+  background: rgba(231, 239, 255, 0.5);
+}
+
+.lesson-audio-playlist-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
 .scene-audio-title {
   margin: 0 0 6px;
   font-weight: 700;
