@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getHomeUnifiedRecommendationBadge } from "@/lib/runtime/home-unified-recommendation-badges";
 import type { HomeUnifiedRecommendation } from "@/lib/runtime/home-unified-recommendations";
 
 type Props = {
@@ -6,6 +7,7 @@ type Props = {
 };
 
 export function HomeUnifiedRecommendationCard({ recommendation }: Props) {
+  const badge = getHomeUnifiedRecommendationBadge(recommendation.agreementLabel);
   const toneClass =
     recommendation.agreementLabel === "agree" ? "success" : "";
 
@@ -13,6 +15,7 @@ export function HomeUnifiedRecommendationCard({ recommendation }: Props) {
     <article className="card">
       <h2>Recommendation snapshot</h2>
       <div className={`status-box ${toneClass}`}>
+        <span className={`recommendation-badge ${badge.tone}`}>{badge.label}</span>
         <p className="status-title">{recommendation.headline}</p>
         <p className="status-copy">{recommendation.summary}</p>
       </div>
@@ -21,13 +24,7 @@ export function HomeUnifiedRecommendationCard({ recommendation }: Props) {
         <div className="runtime-summary-item">
           <strong>Current setup</strong>
           <p className="status-copy">{recommendation.currentSetupLabel}</p>
-          <small>
-            {recommendation.agreementLabel === "agree"
-              ? "Signals are aligned or safely quiet"
-              : recommendation.agreementLabel === "disagree"
-                ? "Signals disagree, so choose based on your goal"
-                : "Signals are still building"}
-          </small>
+          <small>{badge.label} recommendation state</small>
         </div>
 
         {recommendation.observedSetupLabel ? (

@@ -247,6 +247,35 @@ select {
   color: var(--muted);
 }
 
+.recommendation-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  background: rgba(248, 250, 255, 0.88);
+}
+
+.recommendation-badge.success {
+  color: var(--success);
+  border-color: rgba(19, 115, 51, 0.18);
+  background: rgba(19, 115, 51, 0.08);
+}
+
+.recommendation-badge.warning {
+  color: var(--danger);
+  border-color: rgba(180, 35, 24, 0.18);
+  background: rgba(180, 35, 24, 0.08);
+}
+
+.recommendation-badge.muted {
+  color: var(--muted);
+}
+
 .runtime-dashboard {
   display: grid;
   gap: 18px;
