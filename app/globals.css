@@ -578,6 +578,39 @@ select {
   gap: 18px;
 }
 
+.scene-audio-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(32, 82, 214, 0.16);
+  background: rgba(248, 250, 255, 0.92);
+}
+
+.scene-audio-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.scene-audio-title {
+  margin: 0 0 6px;
+  font-weight: 700;
+}
+
+.scene-audio-controls {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 760px) {
+  .scene-audio-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .format-focus-card {
   display: grid;
   gap: 10px;
