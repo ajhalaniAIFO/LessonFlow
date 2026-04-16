@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { InteractiveBlockCard } from "@/components/lesson/interactive-block-card";
 import { LessonAudioPlaylist } from "@/components/lesson/lesson-audio-playlist";
+import { LessonAudioDownloadActions } from "@/components/lesson/lesson-audio-download-actions";
 import { LessonSummaryActions } from "@/components/lesson/lesson-summary-actions";
 import { QuizSceneClient } from "@/components/lesson/quiz-scene-client";
 import { RegenerateLessonButton } from "@/components/lesson/regenerate-lesson-button";
@@ -112,6 +113,18 @@ export default async function LessonPage({
           Copy or download a compact markdown summary of this lesson for notes, sharing, or review.
         </p>
         <LessonSummaryActions lessonId={lesson.id} lessonTitle={lesson.title} />
+      </section>
+
+      <section className="card">
+        <h2>Lesson audio</h2>
+        <p className="status-copy">
+          Download generated narration as a WAV file for the current scene or the full lesson. This export currently works on Windows local installs.
+        </p>
+        <LessonAudioDownloadActions
+          lessonId={lesson.id}
+          lessonTitle={lesson.title}
+          activeSceneId={activeScene?.id}
+        />
       </section>
 
       <section className="card">
