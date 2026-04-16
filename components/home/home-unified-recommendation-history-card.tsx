@@ -1,4 +1,5 @@
 import { getHomeUnifiedRecommendationChart } from "@/lib/runtime/home-unified-recommendation-chart";
+import { getHomeUnifiedRecommendationBadge } from "@/lib/runtime/home-unified-recommendation-badges";
 import type { HomeUnifiedRecommendationHistory } from "@/lib/runtime/home-unified-recommendation-history";
 
 type Props = {
@@ -68,6 +69,11 @@ export function HomeUnifiedRecommendationHistoryCard({ history }: Props) {
           {history.entries.map((entry) => (
             <div key={entry.id} className="runtime-history-row">
               <div>
+                <span
+                  className={`recommendation-badge ${getHomeUnifiedRecommendationBadge(entry.agreementLabel).tone}`}
+                >
+                  {getHomeUnifiedRecommendationBadge(entry.agreementLabel).label}
+                </span>
                 <strong>{entry.headline}</strong>
                 <p className="status-copy">{formatTimestamp(entry.timestamp)}</p>
                 <small className="status-copy">{entry.summary}</small>
