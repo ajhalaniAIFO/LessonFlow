@@ -1,6 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  AUDIO_PREFERENCES_KEY,
+  AUDIO_SPEED_OPTIONS,
+  DEFAULT_AUDIO_PREFERENCES,
+  type AudioSpeedOption,
+  parseAudioPreferences,
+  serializeAudioPreferences,
+} from "@/lib/runtime/audio-preferences";
 
 type SpeechVoiceLike = SpeechSynthesisVoice;
 type AudioState = "idle" | "playing" | "paused";
@@ -13,10 +21,30 @@ type Props = {
 export function SceneAudioPlayer({ title, text }: Props) {
   const [supported, setSupported] = useState(false);
   const [voices, setVoices] = useState<SpeechVoiceLike[]>([]);
-  const [voiceURI, setVoiceURI] = useState("");
-  const [rate, setRate] = useState("1");
+  const [voiceURI, setVoiceURI] = useState(DEFAULT_AUDIO_PREFERENCES.voiceURI);
+  const [rate, setRate] = useState<AudioSpeedOption>(DEFAULT_AUDIO_PREFERENCES.rate);
   const [state, setState] = useState<AudioState>("idle");
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      const storedPreferences = window.localStorage.getItem(AUDIO_PREFERENCES_KEY);
+      if (!storedPreferences) {
+        return;
+      }
+
+      const parsed = parseAudioPreferences(JSON.parse(storedPreferences));
+      setVoiceURI(parsed.voiceURI);
+      setRate(parsed.rate);
+    } catch {
+      setVoiceURI(DEFAULT_AUDIO_PREFERENCES.voiceURI);
+      setRate(DEFAULT_AUDIO_PREFERENCES.rate);
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
@@ -29,6 +57,11 @@ export function SceneAudioPlayer({ title, text }: Props) {
     const syncVoices = () => {
       const availableVoices = synth.getVoices();
       setVoices(availableVoices);
+
+      if (voiceURI && !availableVoices.some((voice) => voice.voiceURI === voiceURI) && availableVoices[0]) {
+        setVoiceURI(availableVoices[0].voiceURI);
+        return;
+      }
 
       if (!voiceURI && availableVoices[0]) {
         setVoiceURI(availableVoices[0].voiceURI);
@@ -43,6 +76,20 @@ export function SceneAudioPlayer({ title, text }: Props) {
       synth.removeEventListener("voiceschanged", syncVoices);
     };
   }, [voiceURI]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(
+      AUDIO_PREFERENCES_KEY,
+      serializeAudioPreferences({
+        voiceURI,
+        rate,
+      }),
+    );
+  }, [rate, voiceURI]);
 
   const selectedVoice = useMemo(
     () => voices.find((voice) => voice.voiceURI === voiceURI) ?? null,
@@ -141,10 +188,12 @@ export function SceneAudioPlayer({ title, text }: Props) {
 
             <label className="field">
               <span>Speed</span>
-              <select value={rate} onChange={(event) => setRate(event.target.value)}>
-                <option value="0.9">Slower</option>
-                <option value="1">Normal</option>
-                <option value="1.15">Faster</option>
+              <select value={rate} onChange={(event) => setRate(event.target.value as AudioSpeedOption)}>
+                {AUDIO_SPEED_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option === "0.9" ? "Slower" : option === "1" ? "Normal" : "Faster"}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
@@ -170,6 +219,8 @@ export function SceneAudioPlayer({ title, text }: Props) {
               Stop
             </button>
           </div>
+
+          <p className="field-hint">Voice and speed preferences are saved on this device for future scenes.</p>
         </>
       ) : (
         <div className="status-box">
