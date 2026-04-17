@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  isLessonAudioStopDetail,
+  LESSON_AUDIO_STOP_EVENT,
+  requestLessonAudioStop,
+} from "@/lib/runtime/audio-coordination";
+import {
   AUDIO_PREFERENCES_KEY,
   DEFAULT_AUDIO_PREFERENCES,
   parseAudioPreferences,
@@ -181,10 +186,43 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const handleStopRequest = (event: Event) => {
+      if (
+        !(event instanceof CustomEvent) ||
+        !isLessonAudioStopDetail(event.detail) ||
+        event.detail.source === "tutor-reply"
+      ) {
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      replyUtteranceRef.current = null;
+      setActiveReplyAudioId(null);
+    };
+
+    window.addEventListener(LESSON_AUDIO_STOP_EVENT, handleStopRequest);
+
+    return () => {
+      window.removeEventListener(LESSON_AUDIO_STOP_EVENT, handleStopRequest);
+    };
+  }, []);
+
   async function handleSend() {
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
+    }
+
+    if (typeof window !== "undefined") {
+      requestLessonAudioStop(window, {
+        source: "tutor-input",
+        reason: "send-question",
+      });
     }
 
     setIsSending(true);
@@ -237,6 +275,11 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
       return;
     }
 
+    requestLessonAudioStop(window, {
+      source: "tutor-input",
+      reason: "open-tutor",
+    });
+
     recognitionRef.current.start();
     setIsListening(true);
   }
@@ -245,6 +288,11 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
     if (typeof window === "undefined" || !replyAudioSupported || !canPlayTutorReply(message.role, message.content)) {
       return;
     }
+
+    requestLessonAudioStop(window, {
+      source: "tutor-reply",
+      reason: "start-playback",
+    });
 
     const synth = window.speechSynthesis;
 

@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  isLessonAudioStopDetail,
+  LESSON_AUDIO_STOP_EVENT,
+  requestLessonAudioStop,
+} from "@/lib/runtime/audio-coordination";
+import {
   AUDIO_PREFERENCES_KEY,
   AUDIO_SPEED_OPTIONS,
   DEFAULT_AUDIO_PREFERENCES,
@@ -82,6 +87,28 @@ export function SceneAudioPlayer({ title, text }: Props) {
       return;
     }
 
+    const handleStopRequest = (event: Event) => {
+      if (!(event instanceof CustomEvent) || !isLessonAudioStopDetail(event.detail) || event.detail.source === "scene") {
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      utteranceRef.current = null;
+      setState("idle");
+    };
+
+    window.addEventListener(LESSON_AUDIO_STOP_EVENT, handleStopRequest);
+
+    return () => {
+      window.removeEventListener(LESSON_AUDIO_STOP_EVENT, handleStopRequest);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
     window.localStorage.setItem(
       AUDIO_PREFERENCES_KEY,
       serializeAudioPreferences({
@@ -100,6 +127,11 @@ export function SceneAudioPlayer({ title, text }: Props) {
     if (!supported || !text.trim()) {
       return;
     }
+
+    requestLessonAudioStop(window, {
+      source: "scene",
+      reason: "start-playback",
+    });
 
     const synth = window.speechSynthesis;
     synth.cancel();

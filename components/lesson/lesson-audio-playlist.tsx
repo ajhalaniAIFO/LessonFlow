@@ -3,6 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  isLessonAudioStopDetail,
+  LESSON_AUDIO_STOP_EVENT,
+  requestLessonAudioStop,
+} from "@/lib/runtime/audio-coordination";
+import {
   AUDIO_PREFERENCES_KEY,
   DEFAULT_AUDIO_PREFERENCES,
   parseAudioPreferences,
@@ -56,6 +61,33 @@ export function LessonAudioPlaylist({ lessonId, activeSceneId, entries }: Props)
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const handleStopRequest = (event: Event) => {
+      if (
+        !(event instanceof CustomEvent) ||
+        !isLessonAudioStopDetail(event.detail) ||
+        event.detail.source === "playlist"
+      ) {
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      utteranceRef.current = null;
+      setCurrentSceneId(null);
+      setIsPlaying(false);
+    };
+
+    window.addEventListener(LESSON_AUDIO_STOP_EVENT, handleStopRequest);
+
+    return () => {
+      window.removeEventListener(LESSON_AUDIO_STOP_EVENT, handleStopRequest);
+    };
+  }, []);
+
   const startIndex = useMemo(() => {
     const activeIndex = entries.findIndex((entry) => entry.sceneId === activeSceneId);
     return activeIndex >= 0 ? activeIndex : 0;
@@ -76,6 +108,11 @@ export function LessonAudioPlaylist({ lessonId, activeSceneId, entries }: Props)
     if (typeof window === "undefined" || !supported) {
       return;
     }
+
+    requestLessonAudioStop(window, {
+      source: "playlist",
+      reason: "start-playback",
+    });
 
     const entry = entries[index];
     if (!entry) {
