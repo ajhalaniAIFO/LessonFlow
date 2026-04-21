@@ -601,6 +601,15 @@ select {
   background: linear-gradient(180deg, rgba(231, 239, 255, 0.9), rgba(255, 255, 255, 0.96));
 }
 
+.audio-session-state-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(91, 100, 118, 0.16);
+  background: linear-gradient(180deg, rgba(248, 250, 255, 0.98), rgba(255, 255, 255, 0.98));
+}
+
 .audio-first-status-header {
   display: flex;
   justify-content: space-between;

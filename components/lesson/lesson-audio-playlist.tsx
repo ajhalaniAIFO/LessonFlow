@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   clearLessonAudioResume,
   isLessonAudioResumeTarget,
+  reportLessonAudioSession,
   isLessonAudioStopDetail,
   LESSON_AUDIO_RESUME_REQUEST_EVENT,
   LESSON_AUDIO_STOP_EVENT,
@@ -148,6 +149,11 @@ export function LessonAudioPlaylist({ lessonId, activeSceneId, entries, audioMod
     utteranceRef.current = null;
     setCurrentSceneId(null);
     setCurrentIndex(null);
+    reportLessonAudioSession(window, {
+      lessonId,
+      owner: "idle",
+      state: "idle",
+    });
     setIsPlaying(false);
   }
 
@@ -195,6 +201,13 @@ export function LessonAudioPlaylist({ lessonId, activeSceneId, entries, audioMod
     utteranceRef.current = utterance;
     setCurrentSceneId(entry.sceneId);
     setCurrentIndex(index);
+    reportLessonAudioSession(window, {
+      lessonId,
+      owner: "playlist",
+      state: "playing",
+      title: entry.title,
+      sceneOrder: entry.sceneOrder,
+    });
     setIsPlaying(true);
     router.push(buildLessonSceneHref(lessonId, entry.sceneOrder, audioMode) as Route);
     synth.speak(utterance);

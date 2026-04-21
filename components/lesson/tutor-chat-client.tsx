@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   clearLessonAudioResume,
   isLessonAudioResumeTarget,
+  reportLessonAudioSession,
   isLessonAudioStopDetail,
   LESSON_AUDIO_RESUME_CLEAR_EVENT,
   LESSON_AUDIO_RESUME_REQUEST_EVENT,
@@ -193,9 +194,19 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
         };
         recognition.onend = () => {
           setIsListening(false);
+          reportLessonAudioSession(window, {
+            lessonId,
+            owner: "idle",
+            state: "idle",
+          });
         };
         recognition.onerror = (event) => {
           setIsListening(false);
+          reportLessonAudioSession(window, {
+            lessonId,
+            owner: "idle",
+            state: "idle",
+          });
           setError(
             event.error === "not-allowed"
               ? "Microphone access was denied. You can still type your question."
@@ -282,6 +293,13 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
       window.speechSynthesis.cancel();
       replyUtteranceRef.current = null;
       setActiveReplyAudioId(null);
+      if (event.detail.source !== "tutor-input") {
+        reportLessonAudioSession(window, {
+          lessonId,
+          owner: "idle",
+          state: "idle",
+        });
+      }
       setShowReplyResumeBridge(false);
     };
 
@@ -340,6 +358,13 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
       payload.data.message,
     ]);
     setDraft("");
+    if (typeof window !== "undefined") {
+      reportLessonAudioSession(window, {
+        lessonId,
+        owner: "tutor-input",
+        state: "idle",
+      });
+    }
     setShowReplyResumeBridge(false);
   }
 
@@ -362,6 +387,12 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
       reason: "open-tutor",
     });
 
+    reportLessonAudioSession(window, {
+      lessonId,
+      owner: "tutor-input",
+      state: "listening",
+      title: selectedSceneTitle,
+    });
     recognitionRef.current.start();
     setIsListening(true);
   }
@@ -382,6 +413,11 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
       synth.cancel();
       replyUtteranceRef.current = null;
       setActiveReplyAudioId(null);
+      reportLessonAudioSession(window, {
+        lessonId,
+        owner: "idle",
+        state: "idle",
+      });
       setShowReplyResumeBridge(false);
       return;
     }
@@ -398,6 +434,11 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
     utterance.onend = () => {
       replyUtteranceRef.current = null;
       setActiveReplyAudioId(null);
+      reportLessonAudioSession(window, {
+        lessonId,
+        owner: "idle",
+        state: "idle",
+      });
       if (replyResumeTarget) {
         setShowReplyResumeBridge(true);
       }
@@ -405,6 +446,11 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
     utterance.onerror = () => {
       replyUtteranceRef.current = null;
       setActiveReplyAudioId(null);
+      reportLessonAudioSession(window, {
+        lessonId,
+        owner: "idle",
+        state: "idle",
+      });
       setShowReplyResumeBridge(false);
       setError("Tutor reply playback stopped unexpectedly. You can try again.");
     };
@@ -412,6 +458,12 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
     replyUtteranceRef.current = utterance;
     setShowReplyResumeBridge(false);
     setActiveReplyAudioId(message.id);
+    reportLessonAudioSession(window, {
+      lessonId,
+      owner: "tutor-reply",
+      state: "playing",
+      title: scenes.find((scene) => scene.id === message.sceneId)?.title ?? selectedSceneTitle,
+    });
     synth.speak(utterance);
   }
 
