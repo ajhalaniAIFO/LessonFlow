@@ -601,6 +601,15 @@ select {
   background: linear-gradient(180deg, rgba(231, 239, 255, 0.9), rgba(255, 255, 255, 0.96));
 }
 
+.audio-session-state-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(91, 100, 118, 0.16);
+  background: linear-gradient(180deg, rgba(248, 250, 255, 0.98), rgba(255, 255, 255, 0.98));
+}
+
 .audio-first-status-header {
   display: flex;
   justify-content: space-between;
@@ -745,6 +754,11 @@ select {
 .audio-mode-tutor-thread {
   border-color: rgba(32, 82, 214, 0.18);
   background: rgba(248, 250, 255, 0.96);
+}
+
+.audio-tutor-reply-resume-card {
+  border-color: rgba(28, 120, 86, 0.22);
+  background: rgba(238, 251, 245, 0.92);
 }
 
 .format-focus-card {

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   clearLessonAudioResume,
   isLessonAudioResumeTarget,
+  reportLessonAudioSession,
   isLessonAudioStopDetail,
   LESSON_AUDIO_RESUME_REQUEST_EVENT,
   LESSON_AUDIO_STOP_EVENT,
@@ -126,6 +127,11 @@ export function SceneAudioPlayer({
 
       window.speechSynthesis.cancel();
       utteranceRef.current = null;
+      reportLessonAudioSession(window, {
+        lessonId,
+        owner: "idle",
+        state: "idle",
+      });
       setState("idle");
     };
 
@@ -187,14 +193,31 @@ export function SceneAudioPlayer({
     utterance.rate = Number(rate);
     utterance.onend = () => {
       utteranceRef.current = null;
+      reportLessonAudioSession(window, {
+        lessonId,
+        owner: "idle",
+        state: "idle",
+      });
       setState("idle");
     };
     utterance.onerror = () => {
       utteranceRef.current = null;
+      reportLessonAudioSession(window, {
+        lessonId,
+        owner: "idle",
+        state: "idle",
+      });
       setState("idle");
     };
 
     utteranceRef.current = utterance;
+    reportLessonAudioSession(window, {
+      lessonId,
+      owner: "scene",
+      state: "playing",
+      title,
+      sceneOrder,
+    });
     setState("playing");
     synth.speak(utterance);
   }
@@ -208,12 +231,26 @@ export function SceneAudioPlayer({
 
     if (state === "playing" && synth.speaking && !synth.paused) {
       synth.pause();
+      reportLessonAudioSession(window, {
+        lessonId,
+        owner: "scene",
+        state: "paused",
+        title,
+        sceneOrder,
+      });
       setState("paused");
       return;
     }
 
     if (state === "paused" && synth.paused) {
       synth.resume();
+      reportLessonAudioSession(window, {
+        lessonId,
+        owner: "scene",
+        state: "playing",
+        title,
+        sceneOrder,
+      });
       setState("playing");
     }
   }
@@ -225,6 +262,11 @@ export function SceneAudioPlayer({
 
     window.speechSynthesis.cancel();
     utteranceRef.current = null;
+    reportLessonAudioSession(window, {
+      lessonId,
+      owner: "idle",
+      state: "idle",
+    });
     setState("idle");
   }
 

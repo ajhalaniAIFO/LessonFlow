@@ -2,6 +2,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { InteractiveBlockCard } from "@/components/lesson/interactive-block-card";
 import { AudioFirstStatusCard } from "@/components/lesson/audio-first-status-card";
+import { AudioSessionStateCard } from "@/components/lesson/audio-session-state-card";
 import { LessonAudioPlaylist } from "@/components/lesson/lesson-audio-playlist";
 import { LessonAudioDownloadActions } from "@/components/lesson/lesson-audio-download-actions";
 import { LessonAudioResumeCard } from "@/components/lesson/lesson-audio-resume-card";
@@ -224,6 +225,7 @@ export default async function LessonPage({
                     queueLength={remainingAudioQueueLength}
                   />
                 ) : null}
+                {audioMode ? <AudioSessionStateCard lessonId={lesson.id} /> : null}
                 <LessonAudioPlaylist
                   lessonId={lesson.id}
                   activeSceneId={activeScene?.id}
