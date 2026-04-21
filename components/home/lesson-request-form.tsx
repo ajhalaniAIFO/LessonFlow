@@ -57,26 +57,30 @@ export function LessonRequestForm({ hardwareProfile }: Props) {
 
     setIsUploadingFile(true);
 
-    const formData = new FormData();
-    formData.append("file", file);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
 
-    const uploadResponse = await fetch("/api/uploads", {
-      method: "POST",
-      body: formData,
-    });
-    const uploadPayload = (await uploadResponse.json()) as ApiResponse<UploadRecord>;
+      const uploadResponse = await fetch("/api/uploads", {
+        method: "POST",
+        body: formData,
+      });
+      const uploadPayload = (await uploadResponse.json()) as ApiResponse<UploadRecord>;
 
-    setIsUploadingFile(false);
+      if (!uploadPayload.success) {
+        setStatus(uploadPayload.error.message);
+        return;
+      }
 
-    if (!uploadPayload.success) {
-      setStatus(uploadPayload.error.message);
-      return;
-    }
+      setUploadSummary(uploadPayload.data);
 
-    setUploadSummary(uploadPayload.data);
-
-    if (uploadPayload.data.extractionStatus !== "ready") {
-      setStatus(uploadPayload.data.errorMessage ?? "Document text extraction failed.");
+      if (uploadPayload.data.extractionStatus !== "ready") {
+        setStatus(uploadPayload.data.errorMessage ?? "Document text extraction failed.");
+      }
+    } catch {
+      setStatus("Document analysis failed before the app received a response. Try uploading the file again.");
+    } finally {
+      setIsUploadingFile(false);
     }
   }
 
