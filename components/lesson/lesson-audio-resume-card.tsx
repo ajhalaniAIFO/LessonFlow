@@ -18,9 +18,10 @@ import {
 
 type Props = {
   lessonId: string;
+  audioMode?: boolean;
 };
 
-export function LessonAudioResumeCard({ lessonId }: Props) {
+export function LessonAudioResumeCard({ lessonId, audioMode = false }: Props) {
   const [resumeTarget, setResumeTarget] = useState<LessonAudioResumeTarget | null>(null);
 
   useEffect(() => {
@@ -90,20 +91,27 @@ export function LessonAudioResumeCard({ lessonId }: Props) {
   }
 
   return (
-    <section className="card lesson-audio-resume-card">
+    <section className={`card lesson-audio-resume-card ${audioMode ? "audio-mode-emphasis" : ""}`}>
       <div className="lesson-audio-resume-header">
         <div>
           <p className="scene-audio-title">{description.title}</p>
           <p className="status-copy">{description.copy}</p>
+          {audioMode ? (
+            <p className="field-hint">
+              Resume stays manual in audio mode, so the lesson never restarts speaking before you are ready.
+            </p>
+          ) : null}
         </div>
-        <span className="recommendation-badge success">Ready to continue</span>
+        <span className="recommendation-badge success">
+          {audioMode ? "Resume ready in audio mode" : "Ready to continue"}
+        </span>
       </div>
       <div className="button-row">
         <button className="button primary" type="button" onClick={handleResume}>
           {description.actionLabel}
         </button>
         <button className="button secondary" type="button" onClick={handleDismiss}>
-          Dismiss
+          {audioMode ? "Clear resume" : "Dismiss"}
         </button>
       </div>
     </section>

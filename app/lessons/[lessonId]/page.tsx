@@ -1,6 +1,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { InteractiveBlockCard } from "@/components/lesson/interactive-block-card";
+import { AudioFirstStatusCard } from "@/components/lesson/audio-first-status-card";
 import { LessonAudioPlaylist } from "@/components/lesson/lesson-audio-playlist";
 import { LessonAudioDownloadActions } from "@/components/lesson/lesson-audio-download-actions";
 import { LessonAudioResumeCard } from "@/components/lesson/lesson-audio-resume-card";
@@ -57,6 +58,10 @@ export default async function LessonPage({
   const generationMode = getGenerationModeDefinition(lesson.generationMode);
   const formatAwareCopy = getFormatAwareCopy(lesson.lessonFormat);
   const audioPlaylist = buildLessonAudioPlaylist(lesson.scenes);
+  const remainingAudioQueueLength =
+    activeSceneStep > 0
+      ? audioPlaylist.filter((entry) => entry.sceneOrder >= activeSceneStep).length
+      : audioPlaylist.length;
   const focusCard = activeScene ? formatAwareCopy.focusCard(activeScene) : null;
   const actionBlock = activeScene ? formatAwareCopy.actionBlock?.(activeScene) : null;
   const checkpointBlock = activeScene ? formatAwareCopy.checkpointBlock?.(activeScene) : null;
@@ -211,17 +216,26 @@ export default async function LessonPage({
               <article className="scene-article">
                 <h3>{activeScene.title}</h3>
                 <RegenerateSceneButton lessonId={lesson.id} sceneId={activeScene.id} />
+                {audioMode ? (
+                  <AudioFirstStatusCard
+                    lessonId={lesson.id}
+                    activeSceneOrder={activeSceneStep}
+                    totalScenes={lesson.scenes.length}
+                    queueLength={remainingAudioQueueLength}
+                  />
+                ) : null}
                 <LessonAudioPlaylist
                   lessonId={lesson.id}
                   activeSceneId={activeScene?.id}
                   entries={audioPlaylist}
+                  audioMode={audioMode}
                 />
-                <LessonAudioResumeCard lessonId={lesson.id} />
+                <LessonAudioResumeCard lessonId={lesson.id} audioMode={audioMode} />
                 {audioMode ? (
                   <div className="audio-mode-focus-card">
                     <p className="status-title">Audio-first focus</p>
                     <p className="status-copy">
-                      Start the playlist here, keep the current scene narration nearby, and move forward scene by scene without leaving the listening flow.
+                      Keep the queue, quick scene replay, and tutor handoff in one place so the lesson can stay listening-first instead of bouncing back into a reading-heavy layout.
                     </p>
                   </div>
                 ) : null}
@@ -270,6 +284,7 @@ export default async function LessonPage({
                       sceneOrder={activeSceneStep}
                       title={activeScene.title}
                       text={buildLessonSceneNarration(activeScene.title, activeScene.content)}
+                      audioMode={audioMode}
                     />
                     <p>{activeScene.content.summary}</p>
                     {activeScene.content.sections.map((section) => (
@@ -306,6 +321,7 @@ export default async function LessonPage({
                     sceneOrder={activeSceneStep}
                     title={activeScene.title}
                     content={activeScene.content}
+                    audioMode={audioMode}
                   />
                 ) : (
                   <p>Scene content is not available yet.</p>
@@ -351,6 +367,7 @@ export default async function LessonPage({
           type: scene.type,
         }))}
         activeSceneId={activeScene?.id}
+        audioMode={audioMode}
       />
     </main>
   );
