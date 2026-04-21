@@ -1,10 +1,18 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resetDatabase } from "@/lib/db/client";
 import { buildSourceContext } from "@/lib/server/uploads/source-intelligence";
 import { createUpload, getUploadById } from "@/lib/server/uploads/upload-service";
+
+const { mockedPdfParse } = vi.hoisted(() => ({
+  mockedPdfParse: vi.fn(async () => ({ text: "Default PDF text" })),
+}));
+
+vi.mock("pdf-parse", () => ({
+  default: mockedPdfParse,
+}));
 
 function createTempDbPath() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lessonflow-upload-test-"));
@@ -15,6 +23,8 @@ describe("upload-service", () => {
   beforeEach(() => {
     resetDatabase();
     process.env.LESSONFLOW_DB_PATH = createTempDbPath();
+    mockedPdfParse.mockReset();
+    mockedPdfParse.mockImplementation(async () => ({ text: "Default PDF text" }));
   });
 
   it("stores and extracts a text document", async () => {
@@ -64,4 +74,17 @@ describe("upload-service", () => {
 
     expect(context?.excerpt).toContain("Heat transfer includes conduction");
   });
+
+  it("fails fast when PDF extraction takes too long", async () => {
+    mockedPdfParse.mockImplementation(() => new Promise(() => {}));
+
+    const file = new File(["pretend-pdf"], "slow.pdf", {
+      type: "application/pdf",
+    });
+
+    const upload = await createUpload(file, { pdfTimeoutMs: 10 });
+
+    expect(upload.extractionStatus).toBe("error");
+    expect(upload.errorMessage).toContain("PDF text extraction took too long");
+  }, 10_000);
 });

@@ -6,6 +6,8 @@ import { getDatabase } from "@/lib/db/client";
 import { AppError } from "@/lib/server/utils/errors";
 import type { UploadRecord } from "@/types/upload";
 
+const PDF_EXTRACTION_TIMEOUT_MS = 15_000;
+
 type UploadRow = {
   id: string;
   filename: string;
@@ -29,6 +31,7 @@ async function extractText(
   filename: string,
   mimeType: string,
   buffer: Buffer,
+  pdfTimeoutMs = PDF_EXTRACTION_TIMEOUT_MS,
 ): Promise<string> {
   const extension = path.extname(filename).toLowerCase();
 
@@ -40,7 +43,19 @@ async function extractText(
   }
 
   if (mimeType === "application/pdf" || extension === ".pdf") {
-    const parsed = await pdfParse(buffer);
+    const parsed = await Promise.race([
+      pdfParse(buffer),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(
+            new AppError(
+              "INVALID_REQUEST",
+              "PDF text extraction took too long. Try a smaller PDF or convert it to text first.",
+            ),
+          );
+        }, pdfTimeoutMs);
+      }),
+    ]);
     return parsed.text;
   }
 
@@ -63,7 +78,12 @@ function mapUpload(row: UploadRow): UploadRecord {
   };
 }
 
-export async function createUpload(file: File): Promise<UploadRecord> {
+export async function createUpload(
+  file: File,
+  options?: {
+    pdfTimeoutMs?: number;
+  },
+): Promise<UploadRecord> {
   if (!file) {
     throw new AppError("INVALID_REQUEST", "A file is required.");
   }
@@ -82,7 +102,9 @@ export async function createUpload(file: File): Promise<UploadRecord> {
   let errorMessage: string | null = null;
 
   try {
-    extractedText = (await extractText(filename, file.type || "", bytes)).trim();
+    extractedText = (
+      await extractText(filename, file.type || "", bytes, options?.pdfTimeoutMs)
+    ).trim();
     if (!extractedText) {
       throw new AppError("INVALID_REQUEST", "The uploaded document did not contain readable text.");
     }
