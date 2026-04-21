@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { requestLessonAudioStop } from "@/lib/runtime/audio-coordination";
+import {
+  isLessonAudioStopDetail,
+  LESSON_AUDIO_STOP_EVENT,
+  requestLessonAudioStop,
+} from "@/lib/runtime/audio-coordination";
 import {
   AUDIO_PREFERENCES_KEY,
   DEFAULT_AUDIO_PREFERENCES,
@@ -182,6 +186,32 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const handleStopRequest = (event: Event) => {
+      if (
+        !(event instanceof CustomEvent) ||
+        !isLessonAudioStopDetail(event.detail) ||
+        event.detail.source === "tutor-reply"
+      ) {
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      replyUtteranceRef.current = null;
+      setActiveReplyAudioId(null);
+    };
+
+    window.addEventListener(LESSON_AUDIO_STOP_EVENT, handleStopRequest);
+
+    return () => {
+      window.removeEventListener(LESSON_AUDIO_STOP_EVENT, handleStopRequest);
+    };
+  }, []);
+
   async function handleSend() {
     if (isListening) {
       recognitionRef.current?.stop();
@@ -259,6 +289,11 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
       return;
     }
 
+    requestLessonAudioStop(window, {
+      source: "tutor-reply",
+      reason: "start-playback",
+    });
+
     const synth = window.speechSynthesis;
 
     if (activeReplyAudioId === message.id) {
@@ -267,11 +302,6 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
       setActiveReplyAudioId(null);
       return;
     }
-
-    requestLessonAudioStop(window, {
-      source: "tutor-reply",
-      reason: "start-playback",
-    });
 
     synth.cancel();
 

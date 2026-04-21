@@ -98,25 +98,6 @@ export function SceneAudioPlayer({ lessonId, sceneId, sceneOrder, title, text }:
       return;
     }
 
-    window.localStorage.setItem(
-      AUDIO_PREFERENCES_KEY,
-      serializeAudioPreferences({
-        voiceURI,
-        rate,
-      }),
-    );
-  }, [rate, voiceURI]);
-
-  const selectedVoice = useMemo(
-    () => voices.find((voice) => voice.voiceURI === voiceURI) ?? null,
-    [voiceURI, voices],
-  );
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
     const handleStopRequest = (event: Event) => {
       if (!(event instanceof CustomEvent) || !isLessonAudioStopDetail(event.detail) || event.detail.source === "scene") {
         return;
@@ -157,10 +138,29 @@ export function SceneAudioPlayer({ lessonId, sceneId, sceneOrder, title, text }:
       window.removeEventListener(LESSON_AUDIO_STOP_EVENT, handleStopRequest);
       window.removeEventListener(LESSON_AUDIO_RESUME_REQUEST_EVENT, handleResumeRequest);
     };
-  }, [lessonId, sceneId, sceneOrder, state, title, text, supported, voiceURI, rate, selectedVoice]);
+  }, [lessonId, sceneId, sceneOrder, state, title]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(
+      AUDIO_PREFERENCES_KEY,
+      serializeAudioPreferences({
+        voiceURI,
+        rate,
+      }),
+    );
+  }, [rate, voiceURI]);
+
+  const selectedVoice = useMemo(
+    () => voices.find((voice) => voice.voiceURI === voiceURI) ?? null,
+    [voiceURI, voices],
+  );
 
   function speakFromStart() {
-    if (!supported || !text.trim()) {
+    if (typeof window === "undefined" || !supported || !text.trim()) {
       return;
     }
 
@@ -192,7 +192,7 @@ export function SceneAudioPlayer({ lessonId, sceneId, sceneOrder, title, text }:
   }
 
   function pauseOrResume() {
-    if (!supported) {
+    if (!supported || typeof window === "undefined") {
       return;
     }
 
@@ -211,7 +211,7 @@ export function SceneAudioPlayer({ lessonId, sceneId, sceneOrder, title, text }:
   }
 
   function stopPlayback() {
-    if (!supported) {
+    if (!supported || typeof window === "undefined") {
       return;
     }
 

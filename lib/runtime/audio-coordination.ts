@@ -25,17 +25,26 @@ type CustomEventTarget = {
   CustomEvent: typeof CustomEvent;
 };
 
-export function requestLessonAudioStop(target: CustomEventTarget, detail: LessonAudioStopDetail) {
+export function requestLessonAudioStop(
+  target: CustomEventTarget,
+  detail: LessonAudioStopDetail,
+) {
   target.dispatchEvent(new target.CustomEvent<LessonAudioStopDetail>(LESSON_AUDIO_STOP_EVENT, { detail }));
 }
 
-export function suggestLessonAudioResume(target: CustomEventTarget, detail: LessonAudioResumeTarget) {
+export function suggestLessonAudioResume(
+  target: CustomEventTarget,
+  detail: LessonAudioResumeTarget,
+) {
   target.dispatchEvent(
     new target.CustomEvent<LessonAudioResumeTarget>(LESSON_AUDIO_RESUME_SUGGEST_EVENT, { detail }),
   );
 }
 
-export function requestLessonAudioResume(target: CustomEventTarget, detail: LessonAudioResumeTarget) {
+export function requestLessonAudioResume(
+  target: CustomEventTarget,
+  detail: LessonAudioResumeTarget,
+) {
   target.dispatchEvent(
     new target.CustomEvent<LessonAudioResumeTarget>(LESSON_AUDIO_RESUME_REQUEST_EVENT, { detail }),
   );

@@ -49,6 +49,10 @@ select {
   padding: 32px 0 56px;
 }
 
+.audio-mode-shell {
+  width: min(1200px, calc(100vw - 24px));
+}
+
 .hero {
   display: grid;
   gap: 24px;
@@ -78,6 +82,11 @@ select {
   display: grid;
   gap: 24px;
   margin-top: 24px;
+}
+
+.audio-mode-summary-card,
+.audio-mode-focus-card {
+  background: linear-gradient(180deg, rgba(231, 239, 255, 0.85), rgba(255, 255, 255, 0.98));
 }
 
 @media (min-width: 960px) {
@@ -576,6 +585,11 @@ select {
 .scene-article {
   display: grid;
   gap: 18px;
+}
+
+.audio-mode-stage {
+  border-color: rgba(32, 82, 214, 0.22);
+  box-shadow: 0 24px 64px rgba(18, 32, 73, 0.12);
 }
 
 .scene-audio-card {

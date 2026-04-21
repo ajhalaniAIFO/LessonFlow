@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import Link from "next/link";
 import { InteractiveBlockCard } from "@/components/lesson/interactive-block-card";
 import { LessonAudioPlaylist } from "@/components/lesson/lesson-audio-playlist";
@@ -18,6 +19,11 @@ import {
   getSceneProgressLabel,
   resolveSceneIndex,
 } from "@/lib/server/lessons/scene-navigation";
+import {
+  buildLessonModeHref,
+  buildLessonSceneHref,
+  resolveAudioFirstMode,
+} from "@/lib/server/lessons/audio-first-mode";
 import { buildLessonSceneNarration } from "@/lib/server/lessons/scene-audio";
 import { buildLessonAudioPlaylist } from "@/lib/server/lessons/lesson-audio-playlist";
 import { getGenerationModeDefinition } from "@/lib/server/lessons/generation-mode";
@@ -30,10 +36,10 @@ export default async function LessonPage({
   searchParams,
 }: {
   params: Promise<{ lessonId: string }>;
-  searchParams: Promise<{ scene?: string }>;
+  searchParams: Promise<{ scene?: string; mode?: string }>;
 }) {
   const { lessonId } = await params;
-  const { scene: rawScene } = await searchParams;
+  const { scene: rawScene, mode: rawMode } = await searchParams;
   const lesson = await getLessonById(lessonId);
 
   if (!lesson) {
@@ -47,6 +53,7 @@ export default async function LessonPage({
   const activeSceneIndex = resolveSceneIndex(rawScene, lesson.scenes.length);
   const activeScene = activeSceneIndex >= 0 ? lesson.scenes[activeSceneIndex] : null;
   const activeSceneStep = activeSceneIndex + 1;
+  const audioMode = resolveAudioFirstMode(rawMode);
   const generationMode = getGenerationModeDefinition(lesson.generationMode);
   const formatAwareCopy = getFormatAwareCopy(lesson.lessonFormat);
   const audioPlaylist = buildLessonAudioPlaylist(lesson.scenes);
@@ -71,7 +78,7 @@ export default async function LessonPage({
       : false;
 
   return (
-    <main className="page-shell">
+    <main className={`page-shell ${audioMode ? "audio-mode-shell" : ""}`}>
       {activeSceneStep > 0 ? (
         <SceneProgressTracker lessonId={lesson.id} sceneOrder={activeSceneStep} />
       ) : null}
@@ -105,45 +112,71 @@ export default async function LessonPage({
         </p>
         <div className="button-row">
           <RegenerateLessonButton lessonId={lesson.id} variant="primary" />
+          {lesson.scenes.length > 0 ? (
+            <Link
+              className={audioMode ? "button secondary" : "button primary"}
+              href={buildLessonModeHref(lesson.id, Math.max(activeSceneStep, 1), audioMode) as Route}
+            >
+              {audioMode ? "Exit audio mode" : "Enter audio mode"}
+            </Link>
+          ) : null}
         </div>
       </section>
 
-      <section className="card">
-        <h2>Lesson summary</h2>
-        <p className="status-copy">
-          Copy or download a compact markdown summary of this lesson for notes, sharing, or review.
-        </p>
-        <LessonSummaryActions lessonId={lesson.id} lessonTitle={lesson.title} />
-      </section>
+      {!audioMode ? (
+        <>
+          <section className="card">
+            <h2>Lesson summary</h2>
+            <p className="status-copy">
+              Copy or download a compact markdown summary of this lesson for notes, sharing, or review.
+            </p>
+            <LessonSummaryActions lessonId={lesson.id} lessonTitle={lesson.title} />
+          </section>
 
-      <section className="card">
-        <h2>Lesson audio</h2>
-        <p className="status-copy">
-          Download generated narration as a WAV file for the current scene or the full lesson. This export currently works on Windows local installs.
-        </p>
-        <LessonAudioDownloadActions
-          lessonId={lesson.id}
-          lessonTitle={lesson.title}
-          activeSceneId={activeScene?.id}
-        />
-      </section>
+          <section className="card">
+            <h2>Lesson audio</h2>
+            <p className="status-copy">
+              Download generated narration as a WAV file for the current scene or the full lesson. This export currently works on Windows local installs.
+            </p>
+            <LessonAudioDownloadActions
+              lessonId={lesson.id}
+              lessonTitle={lesson.title}
+              activeSceneId={activeScene?.id}
+            />
+          </section>
 
-      <section className="card">
-        <h2>Generated outline</h2>
-        <ol className="step-list">
-          {lesson.outline.map((item) => (
-            <li key={item.id}>
-              <strong>{item.title}</strong>
-              {item.goal ? ` - ${item.goal}` : ""}
-              {` (${item.sceneType})`}
-            </li>
-          ))}
-        </ol>
-      </section>
+          <section className="card">
+            <h2>Generated outline</h2>
+            <ol className="step-list">
+              {lesson.outline.map((item) => (
+                <li key={item.id}>
+                  <strong>{item.title}</strong>
+                  {item.goal ? ` - ${item.goal}` : ""}
+                  {` (${item.sceneType})`}
+                </li>
+              ))}
+            </ol>
+          </section>
+        </>
+      ) : (
+        <section className="card audio-mode-summary-card">
+          <h2>Audio-first lesson mode</h2>
+          <p className="status-copy">
+            This view keeps playback, scene progression, and downloads close at hand while reducing reading-first clutter.
+          </p>
+          <div className="button-row">
+            <LessonAudioDownloadActions
+              lessonId={lesson.id}
+              lessonTitle={lesson.title}
+              activeSceneId={activeScene?.id}
+            />
+          </div>
+        </section>
+      )}
 
       <section className="lesson-layout">
         <aside className="card scene-sidebar">
-          <h2>{formatAwareCopy.pathTitle}</h2>
+          <h2>{audioMode ? "Audio queue" : formatAwareCopy.pathTitle}</h2>
           <p>
             {lesson.scenes.length} scene{lesson.scenes.length === 1 ? "" : "s"} generated from{" "}
             {lesson.outline.length} outline item{lesson.outline.length === 1 ? "" : "s"}.
@@ -156,7 +189,7 @@ export default async function LessonPage({
                 <li key={scene.id}>
                   <Link
                     className={`scene-step-link ${index === activeSceneIndex ? "active" : ""}`}
-                    href={`/lessons/${lesson.id}?scene=${index + 1}`}
+                    href={buildLessonSceneHref(lesson.id, index + 1, audioMode) as Route}
                   >
                     <span className="scene-step-order">{index + 1}</span>
                     <span>
@@ -170,7 +203,7 @@ export default async function LessonPage({
           )}
         </aside>
 
-        <section className="card scene-stage">
+        <section className={`card scene-stage ${audioMode ? "audio-mode-stage" : ""}`}>
           <h2>{formatAwareCopy.stageTitle}</h2>
           {activeScene ? (
             <>
@@ -184,6 +217,14 @@ export default async function LessonPage({
                   entries={audioPlaylist}
                 />
                 <LessonAudioResumeCard lessonId={lesson.id} />
+                {audioMode ? (
+                  <div className="audio-mode-focus-card">
+                    <p className="status-title">Audio-first focus</p>
+                    <p className="status-copy">
+                      Start the playlist here, keep the current scene narration nearby, and move forward scene by scene without leaving the listening flow.
+                    </p>
+                  </div>
+                ) : null}
                 {focusCard ? (
                   <div className={`format-focus-card ${lesson.lessonFormat}`}>
                     <p className="format-focus-title">{focusCard.title}</p>
@@ -275,14 +316,22 @@ export default async function LessonPage({
                 <Link
                   className="button secondary scene-nav-link"
                   aria-disabled={activeSceneIndex <= 0}
-                  href={`/lessons/${lesson.id}?scene=${Math.max(activeSceneStep - 1, 1)}`}
+                  href={buildLessonSceneHref(
+                    lesson.id,
+                    Math.max(activeSceneStep - 1, 1),
+                    audioMode,
+                  ) as Route}
                 >
                   Previous scene
                 </Link>
                 <Link
                   className="button primary scene-nav-link"
                   aria-disabled={activeSceneIndex >= lesson.scenes.length - 1}
-                  href={`/lessons/${lesson.id}?scene=${Math.min(activeSceneStep + 1, lesson.scenes.length)}`}
+                  href={buildLessonSceneHref(
+                    lesson.id,
+                    Math.min(activeSceneStep + 1, lesson.scenes.length),
+                    audioMode,
+                  ) as Route}
                 >
                   Next scene
                 </Link>

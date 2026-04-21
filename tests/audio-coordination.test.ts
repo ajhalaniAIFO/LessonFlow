@@ -46,6 +46,7 @@ describe("audio-coordination", () => {
     ).toBe(true);
 
     expect(isLessonAudioStopDetail({ source: "unknown", reason: "start-playback" })).toBe(false);
+    expect(isLessonAudioStopDetail(null)).toBe(false);
     expect(isLessonAudioResumeTarget({ source: "scene" })).toBe(false);
   });
 });
