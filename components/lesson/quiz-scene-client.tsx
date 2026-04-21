@@ -19,11 +19,12 @@ type GradeResponse = {
 type Props = {
   lessonId: string;
   sceneId: string;
+  sceneOrder: number;
   title: string;
   content: QuizSceneContent;
 };
 
-export function QuizSceneClient({ lessonId, sceneId, title, content }: Props) {
+export function QuizSceneClient({ lessonId, sceneId, sceneOrder, title, content }: Props) {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [result, setResult] = useState<GradeResponse | null>(null);
   const [history, setHistory] = useState<QuizAttempt[]>([]);
@@ -91,7 +92,13 @@ export function QuizSceneClient({ lessonId, sceneId, title, content }: Props) {
   return (
     <article style={{ marginBottom: "20px" }}>
       <h3>{title}</h3>
-      <SceneAudioPlayer title={title} text={buildQuizSceneNarration(title, content)} />
+      <SceneAudioPlayer
+        lessonId={lessonId}
+        sceneId={sceneId}
+        sceneOrder={sceneOrder}
+        title={title}
+        text={buildQuizSceneNarration(title, content)}
+      />
       {content.questions.map((question, index) => {
         const questionResult = result?.results.find((item) => item.questionId === question.id);
         return (

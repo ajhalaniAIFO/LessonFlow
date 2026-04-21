@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { requestLessonAudioStop } from "@/lib/runtime/audio-coordination";
 import {
   AUDIO_PREFERENCES_KEY,
   DEFAULT_AUDIO_PREFERENCES,
@@ -187,6 +188,13 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
       setIsListening(false);
     }
 
+    if (typeof window !== "undefined") {
+      requestLessonAudioStop(window, {
+        source: "tutor-input",
+        reason: "send-question",
+      });
+    }
+
     setIsSending(true);
     setError(null);
 
@@ -237,6 +245,11 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
       return;
     }
 
+    requestLessonAudioStop(window, {
+      source: "tutor-input",
+      reason: "open-tutor",
+    });
+
     recognitionRef.current.start();
     setIsListening(true);
   }
@@ -254,6 +267,11 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
       setActiveReplyAudioId(null);
       return;
     }
+
+    requestLessonAudioStop(window, {
+      source: "tutor-reply",
+      reason: "start-playback",
+    });
 
     synth.cancel();
 
