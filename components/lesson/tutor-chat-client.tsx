@@ -57,9 +57,10 @@ type Props = {
   lessonId: string;
   scenes: Pick<Scene, "id" | "title" | "type">[];
   activeSceneId?: string;
+  audioMode?: boolean;
 };
 
-export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
+export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = false }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -331,6 +332,16 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId }: Props) {
     <section className="card" style={{ marginTop: "24px" }}>
       <h2>Ask the tutor</h2>
       <div className="form-grid">
+        {audioMode ? (
+          <div className="status-box audio-tutor-handoff-card">
+            <p className="status-title">Audio-mode tutor handoff</p>
+            <p className="status-copy">
+              Opening voice input, sending a question, or listening to a tutor reply will pause lesson playback first.
+              When you are ready to keep going, the resume card above will keep the next step one click away.
+            </p>
+          </div>
+        ) : null}
+
         <div className="field">
           <label>Current tutor focus</label>
           <div className="status-box" style={{ marginTop: 0 }}>

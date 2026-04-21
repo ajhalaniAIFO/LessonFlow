@@ -22,9 +22,10 @@ type Props = {
   sceneOrder: number;
   title: string;
   content: QuizSceneContent;
+  audioMode?: boolean;
 };
 
-export function QuizSceneClient({ lessonId, sceneId, sceneOrder, title, content }: Props) {
+export function QuizSceneClient({ lessonId, sceneId, sceneOrder, title, content, audioMode = false }: Props) {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [result, setResult] = useState<GradeResponse | null>(null);
   const [history, setHistory] = useState<QuizAttempt[]>([]);
@@ -98,6 +99,7 @@ export function QuizSceneClient({ lessonId, sceneId, sceneOrder, title, content 
         sceneOrder={sceneOrder}
         title={title}
         text={buildQuizSceneNarration(title, content)}
+        audioMode={audioMode}
       />
       {content.questions.map((question, index) => {
         const questionResult = result?.results.find((item) => item.questionId === question.id);

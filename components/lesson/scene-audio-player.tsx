@@ -32,9 +32,17 @@ type Props = {
   sceneOrder: number;
   title: string;
   text: string;
+  audioMode?: boolean;
 };
 
-export function SceneAudioPlayer({ lessonId, sceneId, sceneOrder, title, text }: Props) {
+export function SceneAudioPlayer({
+  lessonId,
+  sceneId,
+  sceneOrder,
+  title,
+  text,
+  audioMode = false,
+}: Props) {
   const [supported, setSupported] = useState(false);
   const [voices, setVoices] = useState<SpeechVoiceLike[]>([]);
   const [voiceURI, setVoiceURI] = useState(DEFAULT_AUDIO_PREFERENCES.voiceURI);
@@ -230,11 +238,21 @@ export function SceneAudioPlayer({ lessonId, sceneId, sceneOrder, title, text }:
         <div>
           <p className="scene-audio-title">Listen to this scene</p>
           <p className="status-copy">
-            Use browser narration to hear this scene out loud while you follow along.
+            {audioMode
+              ? "Use quick scene playback when you want to rehear this step without leaving the broader listening flow."
+              : "Use browser narration to hear this scene out loud while you follow along."}
           </p>
         </div>
         <span className={`recommendation-badge ${supported ? "success" : "muted"}`}>
-          {supported ? "Audio ready" : "Audio unavailable"}
+          {supported
+            ? state === "playing"
+              ? "Now listening"
+              : state === "paused"
+                ? "Paused"
+                : audioMode
+                  ? "Scene ready"
+                  : "Audio ready"
+            : "Audio unavailable"}
         </span>
       </div>
 

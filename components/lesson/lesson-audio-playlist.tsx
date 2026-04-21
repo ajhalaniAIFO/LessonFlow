@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -20,15 +21,17 @@ import {
   LESSON_AUDIO_RESUME_STORAGE_KEY,
   serializeLessonAudioResume,
 } from "@/lib/runtime/audio-resume";
+import { buildLessonSceneHref } from "@/lib/server/lessons/audio-first-mode";
 import type { LessonAudioPlaylistEntry } from "@/lib/server/lessons/lesson-audio-playlist";
 
 type Props = {
   lessonId: string;
   activeSceneId?: string;
   entries: LessonAudioPlaylistEntry[];
+  audioMode?: boolean;
 };
 
-export function LessonAudioPlaylist({ lessonId, activeSceneId, entries }: Props) {
+export function LessonAudioPlaylist({ lessonId, activeSceneId, entries, audioMode = false }: Props) {
   const router = useRouter();
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const [supported, setSupported] = useState(false);
@@ -182,7 +185,7 @@ export function LessonAudioPlaylist({ lessonId, activeSceneId, entries }: Props)
         return;
       }
 
-      router.push(`/lessons/${lessonId}?scene=${nextEntry.sceneOrder}`);
+      router.push(buildLessonSceneHref(lessonId, nextEntry.sceneOrder, audioMode) as Route);
       playEntryAt(index + 1);
     };
     utterance.onerror = () => {
@@ -193,7 +196,7 @@ export function LessonAudioPlaylist({ lessonId, activeSceneId, entries }: Props)
     setCurrentSceneId(entry.sceneId);
     setCurrentIndex(index);
     setIsPlaying(true);
-    router.push(`/lessons/${lessonId}?scene=${entry.sceneOrder}`);
+    router.push(buildLessonSceneHref(lessonId, entry.sceneOrder, audioMode) as Route);
     synth.speak(utterance);
   }
 
@@ -209,11 +212,13 @@ export function LessonAudioPlaylist({ lessonId, activeSceneId, entries }: Props)
         <div>
           <p className="scene-audio-title">Lesson audio playlist</p>
           <p className="status-copy">
-            Start from this scene and continue through the remaining lesson with your saved narration settings.
+            {audioMode
+              ? "Start from this scene and stay in the listening flow while the queue moves forward with your saved narration settings."
+              : "Start from this scene and continue through the remaining lesson with your saved narration settings."}
           </p>
         </div>
         <span className={`recommendation-badge ${supported ? "success" : "muted"}`}>
-          {supported ? "Playlist ready" : "Playlist unavailable"}
+          {supported ? (isPlaying ? "Queue playing" : audioMode ? "Queue ready" : "Playlist ready") : "Playlist unavailable"}
         </span>
       </div>
 
@@ -230,7 +235,9 @@ export function LessonAudioPlaylist({ lessonId, activeSceneId, entries }: Props)
           <p className="field-hint">
             {currentEntry
               ? `Now playing scene ${currentEntry.sceneOrder}: ${currentEntry.title}`
-              : `Playlist will start at scene ${entries[startIndex]?.sceneOrder ?? 1}.`}
+              : audioMode
+                ? `The audio queue is lined up to begin at scene ${entries[startIndex]?.sceneOrder ?? 1}.`
+                : `Playlist will start at scene ${entries[startIndex]?.sceneOrder ?? 1}.`}
           </p>
         </>
       ) : (
