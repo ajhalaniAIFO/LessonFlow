@@ -3,16 +3,25 @@
 import { useMemo } from "react";
 import { useEffect, useRef, useState } from "react";
 import {
+  clearLessonAudioResume,
+  isLessonAudioResumeTarget,
   isLessonAudioStopDetail,
+  LESSON_AUDIO_RESUME_CLEAR_EVENT,
+  LESSON_AUDIO_RESUME_REQUEST_EVENT,
+  LESSON_AUDIO_RESUME_SUGGEST_EVENT,
   LESSON_AUDIO_STOP_EVENT,
+  requestLessonAudioResume,
   requestLessonAudioStop,
+  type LessonAudioResumeTarget,
 } from "@/lib/runtime/audio-coordination";
 import {
   AUDIO_PREFERENCES_KEY,
   DEFAULT_AUDIO_PREFERENCES,
   parseAudioPreferences,
 } from "@/lib/runtime/audio-preferences";
+import { getAudioFirstReplyResume } from "@/lib/runtime/audio-first-reply-resume";
 import { getAudioFirstTutorState } from "@/lib/runtime/audio-first-tutor";
+import { LESSON_AUDIO_RESUME_STORAGE_KEY, parseLessonAudioResume } from "@/lib/runtime/audio-resume";
 import { getSpeechRecognitionSupport } from "@/lib/runtime/speech-recognition";
 import { canPlayTutorReply, getTutorReplyAudioSupport } from "@/lib/runtime/tutor-reply-audio";
 import type { ApiResponse } from "@/types/api";
@@ -73,6 +82,8 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
   const [replyAudioSupported, setReplyAudioSupported] = useState(false);
   const [replyAudioMessage, setReplyAudioMessage] = useState("Checking tutor reply audio support...");
   const [activeReplyAudioId, setActiveReplyAudioId] = useState<string | null>(null);
+  const [replyResumeTarget, setReplyResumeTarget] = useState<LessonAudioResumeTarget | null>(null);
+  const [showReplyResumeBridge, setShowReplyResumeBridge] = useState(false);
   const [selectedSceneId, setSelectedSceneId] = useState<string>(activeSceneId ?? scenes[0]?.id ?? "");
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const replyUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -89,6 +100,10 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
         hasMessages: messages.length > 0,
       }),
     [activeReplyAudioId, isListening, messages.length, selectedSceneTitle],
+  );
+  const replyResumeBridge = useMemo(
+    () => (replyResumeTarget ? getAudioFirstReplyResume(replyResumeTarget) : null),
+    [replyResumeTarget],
   );
 
   useEffect(() => {
@@ -206,6 +221,55 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
       return;
     }
 
+    try {
+      const stored = window.localStorage.getItem(LESSON_AUDIO_RESUME_STORAGE_KEY);
+      if (stored) {
+        const parsed = parseLessonAudioResume(JSON.parse(stored));
+        if (parsed?.lessonId === lessonId) {
+          setReplyResumeTarget(parsed);
+        }
+      }
+    } catch {
+      setReplyResumeTarget(null);
+    }
+
+    const handleSuggest = (event: Event) => {
+      if (!(event instanceof CustomEvent) || !isLessonAudioResumeTarget(event.detail) || event.detail.lessonId !== lessonId) {
+        return;
+      }
+
+      setReplyResumeTarget(event.detail);
+    };
+
+    const handleClear = () => {
+      setReplyResumeTarget(null);
+      setShowReplyResumeBridge(false);
+    };
+
+    const handleResumeRequest = (event: Event) => {
+      if (!(event instanceof CustomEvent) || !isLessonAudioResumeTarget(event.detail) || event.detail.lessonId !== lessonId) {
+        return;
+      }
+
+      setShowReplyResumeBridge(false);
+    };
+
+    window.addEventListener(LESSON_AUDIO_RESUME_SUGGEST_EVENT, handleSuggest);
+    window.addEventListener(LESSON_AUDIO_RESUME_CLEAR_EVENT, handleClear);
+    window.addEventListener(LESSON_AUDIO_RESUME_REQUEST_EVENT, handleResumeRequest);
+
+    return () => {
+      window.removeEventListener(LESSON_AUDIO_RESUME_SUGGEST_EVENT, handleSuggest);
+      window.removeEventListener(LESSON_AUDIO_RESUME_CLEAR_EVENT, handleClear);
+      window.removeEventListener(LESSON_AUDIO_RESUME_REQUEST_EVENT, handleResumeRequest);
+    };
+  }, [lessonId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
     const handleStopRequest = (event: Event) => {
       if (
         !(event instanceof CustomEvent) ||
@@ -218,6 +282,7 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
       window.speechSynthesis.cancel();
       replyUtteranceRef.current = null;
       setActiveReplyAudioId(null);
+      setShowReplyResumeBridge(false);
     };
 
     window.addEventListener(LESSON_AUDIO_STOP_EVENT, handleStopRequest);
@@ -275,6 +340,7 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
       payload.data.message,
     ]);
     setDraft("");
+    setShowReplyResumeBridge(false);
   }
 
   function handleVoiceInput() {
@@ -290,6 +356,7 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
       return;
     }
 
+    setShowReplyResumeBridge(false);
     requestLessonAudioStop(window, {
       source: "tutor-input",
       reason: "open-tutor",
@@ -315,6 +382,7 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
       synth.cancel();
       replyUtteranceRef.current = null;
       setActiveReplyAudioId(null);
+      setShowReplyResumeBridge(false);
       return;
     }
 
@@ -330,16 +398,32 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
     utterance.onend = () => {
       replyUtteranceRef.current = null;
       setActiveReplyAudioId(null);
+      if (replyResumeTarget) {
+        setShowReplyResumeBridge(true);
+      }
     };
     utterance.onerror = () => {
       replyUtteranceRef.current = null;
       setActiveReplyAudioId(null);
+      setShowReplyResumeBridge(false);
       setError("Tutor reply playback stopped unexpectedly. You can try again.");
     };
 
     replyUtteranceRef.current = utterance;
+    setShowReplyResumeBridge(false);
     setActiveReplyAudioId(message.id);
     synth.speak(utterance);
+  }
+
+  function handleReplyResume() {
+    if (typeof window === "undefined" || !replyResumeTarget) {
+      return;
+    }
+
+    requestLessonAudioResume(window, replyResumeTarget);
+    window.localStorage.removeItem(LESSON_AUDIO_RESUME_STORAGE_KEY);
+    clearLessonAudioResume(window);
+    setShowReplyResumeBridge(false);
   }
 
   return (
@@ -370,6 +454,27 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
               </div>
             </div>
           </section>
+        ) : null}
+
+        {audioMode && showReplyResumeBridge && replyResumeTarget && replyResumeBridge ? (
+          <div className="status-box audio-tutor-reply-resume-card">
+            <div className="audio-mode-tutor-summary-header">
+              <div>
+                <p className="status-title">{replyResumeBridge.title}</p>
+                <p className="status-copy">{replyResumeBridge.summary}</p>
+                <p className="field-hint">{replyResumeBridge.helperCopy}</p>
+              </div>
+              <span className="recommendation-badge success">Resume ready</span>
+            </div>
+            <div className="button-row">
+              <button className="button primary" type="button" onClick={handleReplyResume}>
+                {replyResumeBridge.actionLabel}
+              </button>
+              <button className="button secondary" type="button" onClick={() => setShowReplyResumeBridge(false)}>
+                Not yet
+              </button>
+            </div>
+          </div>
         ) : null}
 
         <div className="field">

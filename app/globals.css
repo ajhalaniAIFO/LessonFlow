@@ -747,6 +747,11 @@ select {
   background: rgba(248, 250, 255, 0.96);
 }
 
+.audio-tutor-reply-resume-card {
+  border-color: rgba(28, 120, 86, 0.22);
+  background: rgba(238, 251, 245, 0.92);
+}
+
 .format-focus-card {
   display: grid;
   gap: 10px;
