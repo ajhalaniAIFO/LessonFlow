@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useEffect, useRef, useState } from "react";
 import {
   isLessonAudioStopDetail,
@@ -11,6 +12,7 @@ import {
   DEFAULT_AUDIO_PREFERENCES,
   parseAudioPreferences,
 } from "@/lib/runtime/audio-preferences";
+import { getAudioFirstTutorState } from "@/lib/runtime/audio-first-tutor";
 import { getSpeechRecognitionSupport } from "@/lib/runtime/speech-recognition";
 import { canPlayTutorReply, getTutorReplyAudioSupport } from "@/lib/runtime/tutor-reply-audio";
 import type { ApiResponse } from "@/types/api";
@@ -76,6 +78,18 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
   const replyUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const replyVoiceURIRef = useRef(DEFAULT_AUDIO_PREFERENCES.voiceURI);
   const replyRateRef = useRef(DEFAULT_AUDIO_PREFERENCES.rate);
+  const selectedSceneTitle = scenes.find((scene) => scene.id === selectedSceneId)?.title ?? "this lesson";
+
+  const audioFirstTutorState = useMemo(
+    () =>
+      getAudioFirstTutorState({
+        activeSceneTitle: selectedSceneTitle,
+        isListening,
+        activeReplyAudio: activeReplyAudioId !== null,
+        hasMessages: messages.length > 0,
+      }),
+    [activeReplyAudioId, isListening, messages.length, selectedSceneTitle],
+  );
 
   useEffect(() => {
     if (!selectedSceneId && scenes[0]?.id) {
@@ -329,17 +343,33 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
   }
 
   return (
-    <section className="card" style={{ marginTop: "24px" }}>
+    <section className={`card ${audioMode ? "audio-mode-tutor-shell" : ""}`} style={{ marginTop: "24px" }}>
       <h2>Ask the tutor</h2>
       <div className="form-grid">
         {audioMode ? (
-          <div className="status-box audio-tutor-handoff-card">
-            <p className="status-title">Audio-mode tutor handoff</p>
-            <p className="status-copy">
-              Opening voice input, sending a question, or listening to a tutor reply will pause lesson playback first.
-              When you are ready to keep going, the resume card above will keep the next step one click away.
-            </p>
-          </div>
+          <section className="audio-mode-tutor-summary">
+            <div className="audio-mode-tutor-summary-header">
+              <div>
+                <p className="status-title">{audioFirstTutorState.title}</p>
+                <p className="status-copy">{audioFirstTutorState.summary}</p>
+              </div>
+              <span className="recommendation-badge info">{audioFirstTutorState.badgeLabel}</span>
+            </div>
+            <div className="audio-mode-tutor-grid">
+              <div className="status-box audio-tutor-handoff-card">
+                <p className="status-title">{audioFirstTutorState.focusTitle}</p>
+                <p className="status-copy">{audioFirstTutorState.focusCopy}</p>
+              </div>
+              <div className="status-box audio-tutor-handoff-card">
+                <p className="status-title">{audioFirstTutorState.actionTitle}</p>
+                <p className="status-copy">{audioFirstTutorState.actionCopy}</p>
+              </div>
+              <div className="status-box audio-tutor-handoff-card">
+                <p className="status-title">{audioFirstTutorState.afterReplyTitle}</p>
+                <p className="status-copy">{audioFirstTutorState.afterReplyCopy}</p>
+              </div>
+            </div>
+          </section>
         ) : null}
 
         <div className="field">
@@ -354,7 +384,7 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
           </div>
         </div>
 
-        <div className="status-box">
+        <div className={`status-box ${audioMode ? "audio-mode-tutor-thread" : ""}`}>
           {messages.length === 0 ? (
             <p className="status-copy">Ask a question about the lesson, with extra focus on the selected scene.</p>
           ) : (
@@ -381,6 +411,13 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
                   </p>
                 ) : null}
                 <p className="status-copy">{message.content}</p>
+                {audioMode && message.role === "assistant" ? (
+                  <p className="field-hint" style={{ margin: "8px 0 0" }}>
+                    {activeReplyAudioId === message.id
+                      ? "Tutor reply playback has the audio focus now. Use the resume card above when you are ready to continue the lesson."
+                      : "You can listen to this reply, then return to the lesson with the manual resume action above."}
+                  </p>
+                ) : null}
               </div>
             ))
           )}
@@ -402,6 +439,7 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
             }}
             placeholder="What part of this lesson should I focus on first?"
           />
+          <span className="field-hint">{audioMode ? audioFirstTutorState.composerHint : speechMessage}</span>
           <span className="field-hint">{speechMessage}</span>
           <span className="field-hint">{replyAudioMessage}</span>
         </div>
@@ -413,7 +451,7 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
             onClick={handleVoiceInput}
             disabled={!speechSupported || isSending}
           >
-            {isListening ? "Stop voice input" : "Use voice input"}
+            {isListening ? "Stop voice input" : audioMode ? "Speak question" : "Use voice input"}
           </button>
           <button
             className="button primary"
@@ -421,7 +459,7 @@ export function TutorChatClient({ lessonId, scenes, activeSceneId, audioMode = f
             onClick={handleSend}
             disabled={isSending || draft.trim().length === 0}
           >
-            {isSending ? "Thinking..." : "Send question"}
+            {isSending ? "Thinking..." : audioMode ? "Ask and pause lesson" : "Send question"}
           </button>
         </div>
 

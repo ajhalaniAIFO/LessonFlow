@@ -708,9 +708,43 @@ select {
   padding: 8px 12px;
 }
 
+.audio-mode-tutor-shell {
+  border-color: rgba(32, 82, 214, 0.18);
+  box-shadow: 0 20px 48px rgba(18, 32, 73, 0.08);
+}
+
+.audio-mode-tutor-summary {
+  display: grid;
+  gap: 14px;
+}
+
+.audio-mode-tutor-summary-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.audio-mode-tutor-grid {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 860px) {
+  .audio-mode-tutor-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .audio-tutor-handoff-card {
   border-color: rgba(32, 82, 214, 0.2);
   background: rgba(231, 239, 255, 0.58);
+}
+
+.audio-mode-tutor-thread {
+  border-color: rgba(32, 82, 214, 0.18);
+  background: rgba(248, 250, 255, 0.96);
 }
 
 .format-focus-card {
