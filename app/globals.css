@@ -618,7 +618,24 @@ select {
   background: rgba(231, 239, 255, 0.5);
 }
 
+.lesson-audio-resume-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(28, 120, 86, 0.2);
+  background: rgba(238, 251, 245, 0.9);
+}
+
 .lesson-audio-playlist-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.lesson-audio-resume-header {
   display: flex;
   justify-content: space-between;
   gap: 16px;

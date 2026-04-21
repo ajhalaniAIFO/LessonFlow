@@ -2,9 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  clearLessonAudioResume,
+  isLessonAudioResumeTarget,
   isLessonAudioStopDetail,
+  LESSON_AUDIO_RESUME_REQUEST_EVENT,
   LESSON_AUDIO_STOP_EVENT,
   requestLessonAudioStop,
+  suggestLessonAudioResume,
 } from "@/lib/runtime/audio-coordination";
 import {
   AUDIO_PREFERENCES_KEY,
@@ -14,16 +18,23 @@ import {
   parseAudioPreferences,
   serializeAudioPreferences,
 } from "@/lib/runtime/audio-preferences";
+import {
+  LESSON_AUDIO_RESUME_STORAGE_KEY,
+  serializeLessonAudioResume,
+} from "@/lib/runtime/audio-resume";
 
 type SpeechVoiceLike = SpeechSynthesisVoice;
 type AudioState = "idle" | "playing" | "paused";
 
 type Props = {
+  lessonId: string;
+  sceneId: string;
+  sceneOrder: number;
   title: string;
   text: string;
 };
 
-export function SceneAudioPlayer({ title, text }: Props) {
+export function SceneAudioPlayer({ lessonId, sceneId, sceneOrder, title, text }: Props) {
   const [supported, setSupported] = useState(false);
   const [voices, setVoices] = useState<SpeechVoiceLike[]>([]);
   const [voiceURI, setVoiceURI] = useState(DEFAULT_AUDIO_PREFERENCES.voiceURI);
@@ -92,17 +103,42 @@ export function SceneAudioPlayer({ title, text }: Props) {
         return;
       }
 
+      if (state !== "idle" && (event.detail.source === "tutor-input" || event.detail.source === "tutor-reply")) {
+        const target = {
+          lessonId,
+          source: "scene" as const,
+          sceneId,
+          sceneOrder,
+          title,
+        };
+
+        window.localStorage.setItem(LESSON_AUDIO_RESUME_STORAGE_KEY, serializeLessonAudioResume(target));
+        suggestLessonAudioResume(window, target);
+      }
+
       window.speechSynthesis.cancel();
       utteranceRef.current = null;
       setState("idle");
     };
 
+    const handleResumeRequest = (event: Event) => {
+      if (!(event instanceof CustomEvent) || !isLessonAudioResumeTarget(event.detail)) {
+        return;
+      }
+
+      if (event.detail.lessonId === lessonId && event.detail.source === "scene" && event.detail.sceneId === sceneId) {
+        speakFromStart();
+      }
+    };
+
     window.addEventListener(LESSON_AUDIO_STOP_EVENT, handleStopRequest);
+    window.addEventListener(LESSON_AUDIO_RESUME_REQUEST_EVENT, handleResumeRequest);
 
     return () => {
       window.removeEventListener(LESSON_AUDIO_STOP_EVENT, handleStopRequest);
+      window.removeEventListener(LESSON_AUDIO_RESUME_REQUEST_EVENT, handleResumeRequest);
     };
-  }, []);
+  }, [lessonId, sceneId, sceneOrder, state, title]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -124,10 +160,12 @@ export function SceneAudioPlayer({ title, text }: Props) {
   );
 
   function speakFromStart() {
-    if (!supported || !text.trim()) {
+    if (typeof window === "undefined" || !supported || !text.trim()) {
       return;
     }
 
+    clearLessonAudioResume(window);
+    window.localStorage.removeItem(LESSON_AUDIO_RESUME_STORAGE_KEY);
     requestLessonAudioStop(window, {
       source: "scene",
       reason: "start-playback",
@@ -154,7 +192,7 @@ export function SceneAudioPlayer({ title, text }: Props) {
   }
 
   function pauseOrResume() {
-    if (!supported) {
+    if (!supported || typeof window === "undefined") {
       return;
     }
 
@@ -173,7 +211,7 @@ export function SceneAudioPlayer({ title, text }: Props) {
   }
 
   function stopPlayback() {
-    if (!supported) {
+    if (!supported || typeof window === "undefined") {
       return;
     }
 

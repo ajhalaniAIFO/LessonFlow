@@ -3,15 +3,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  clearLessonAudioResume,
+  isLessonAudioResumeTarget,
   isLessonAudioStopDetail,
+  LESSON_AUDIO_RESUME_REQUEST_EVENT,
   LESSON_AUDIO_STOP_EVENT,
   requestLessonAudioStop,
+  suggestLessonAudioResume,
 } from "@/lib/runtime/audio-coordination";
 import {
   AUDIO_PREFERENCES_KEY,
   DEFAULT_AUDIO_PREFERENCES,
   parseAudioPreferences,
 } from "@/lib/runtime/audio-preferences";
+import {
+  LESSON_AUDIO_RESUME_STORAGE_KEY,
+  serializeLessonAudioResume,
+} from "@/lib/runtime/audio-resume";
 import type { LessonAudioPlaylistEntry } from "@/lib/server/lessons/lesson-audio-playlist";
 
 type Props = {
@@ -25,6 +33,7 @@ export function LessonAudioPlaylist({ lessonId, activeSceneId, entries }: Props)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const [supported, setSupported] = useState(false);
   const [currentSceneId, setCurrentSceneId] = useState<string | null>(null);
+  const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [voiceURI, setVoiceURI] = useState(DEFAULT_AUDIO_PREFERENCES.voiceURI);
   const [rate, setRate] = useState(DEFAULT_AUDIO_PREFERENCES.rate);
@@ -61,6 +70,11 @@ export function LessonAudioPlaylist({ lessonId, activeSceneId, entries }: Props)
     };
   }, []);
 
+  const startIndex = useMemo(() => {
+    const activeIndex = entries.findIndex((entry) => entry.sceneId === activeSceneId);
+    return activeIndex >= 0 ? activeIndex : 0;
+  }, [activeSceneId, entries]);
+
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
@@ -75,23 +89,52 @@ export function LessonAudioPlaylist({ lessonId, activeSceneId, entries }: Props)
         return;
       }
 
+      if (
+        isPlaying &&
+        currentIndex !== null &&
+        (event.detail.source === "tutor-input" || event.detail.source === "tutor-reply")
+      ) {
+        const entry = entries[currentIndex];
+        if (entry) {
+          const target = {
+            lessonId,
+            source: "playlist" as const,
+            sceneId: entry.sceneId,
+            sceneOrder: entry.sceneOrder,
+            title: entry.title,
+            playlistIndex: currentIndex,
+          };
+
+          window.localStorage.setItem(LESSON_AUDIO_RESUME_STORAGE_KEY, serializeLessonAudioResume(target));
+          suggestLessonAudioResume(window, target);
+        }
+      }
+
       window.speechSynthesis.cancel();
       utteranceRef.current = null;
       setCurrentSceneId(null);
+      setCurrentIndex(null);
       setIsPlaying(false);
     };
 
+    const handleResumeRequest = (event: Event) => {
+      if (!(event instanceof CustomEvent) || !isLessonAudioResumeTarget(event.detail)) {
+        return;
+      }
+
+      if (event.detail.lessonId === lessonId && event.detail.source === "playlist") {
+        playEntryAt(event.detail.playlistIndex ?? startIndex);
+      }
+    };
+
     window.addEventListener(LESSON_AUDIO_STOP_EVENT, handleStopRequest);
+    window.addEventListener(LESSON_AUDIO_RESUME_REQUEST_EVENT, handleResumeRequest);
 
     return () => {
       window.removeEventListener(LESSON_AUDIO_STOP_EVENT, handleStopRequest);
+      window.removeEventListener(LESSON_AUDIO_RESUME_REQUEST_EVENT, handleResumeRequest);
     };
-  }, []);
-
-  const startIndex = useMemo(() => {
-    const activeIndex = entries.findIndex((entry) => entry.sceneId === activeSceneId);
-    return activeIndex >= 0 ? activeIndex : 0;
-  }, [activeSceneId, entries]);
+  }, [currentIndex, entries, isPlaying, lessonId, startIndex]);
 
   function stopPlaylist() {
     if (typeof window === "undefined") {
@@ -101,6 +144,7 @@ export function LessonAudioPlaylist({ lessonId, activeSceneId, entries }: Props)
     window.speechSynthesis.cancel();
     utteranceRef.current = null;
     setCurrentSceneId(null);
+    setCurrentIndex(null);
     setIsPlaying(false);
   }
 
@@ -109,16 +153,18 @@ export function LessonAudioPlaylist({ lessonId, activeSceneId, entries }: Props)
       return;
     }
 
-    requestLessonAudioStop(window, {
-      source: "playlist",
-      reason: "start-playback",
-    });
-
     const entry = entries[index];
     if (!entry) {
       stopPlaylist();
       return;
     }
+
+    clearLessonAudioResume(window);
+    window.localStorage.removeItem(LESSON_AUDIO_RESUME_STORAGE_KEY);
+    requestLessonAudioStop(window, {
+      source: "playlist",
+      reason: "start-playback",
+    });
 
     const synth = window.speechSynthesis;
     synth.cancel();
@@ -145,6 +191,7 @@ export function LessonAudioPlaylist({ lessonId, activeSceneId, entries }: Props)
 
     utteranceRef.current = utterance;
     setCurrentSceneId(entry.sceneId);
+    setCurrentIndex(index);
     setIsPlaying(true);
     router.push(`/lessons/${lessonId}?scene=${entry.sceneOrder}`);
     synth.speak(utterance);

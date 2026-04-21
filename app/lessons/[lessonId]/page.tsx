@@ -3,6 +3,7 @@ import Link from "next/link";
 import { InteractiveBlockCard } from "@/components/lesson/interactive-block-card";
 import { LessonAudioPlaylist } from "@/components/lesson/lesson-audio-playlist";
 import { LessonAudioDownloadActions } from "@/components/lesson/lesson-audio-download-actions";
+import { LessonAudioResumeCard } from "@/components/lesson/lesson-audio-resume-card";
 import { LessonSummaryActions } from "@/components/lesson/lesson-summary-actions";
 import { QuizSceneClient } from "@/components/lesson/quiz-scene-client";
 import { RegenerateLessonButton } from "@/components/lesson/regenerate-lesson-button";
@@ -215,6 +216,7 @@ export default async function LessonPage({
                   activeSceneId={activeScene?.id}
                   entries={audioPlaylist}
                 />
+                <LessonAudioResumeCard lessonId={lesson.id} />
                 {audioMode ? (
                   <div className="audio-mode-focus-card">
                     <p className="status-title">Audio-first focus</p>
@@ -263,6 +265,9 @@ export default async function LessonPage({
                 {"content" in activeScene && activeScene.content && "summary" in activeScene.content ? (
                   <>
                     <SceneAudioPlayer
+                      lessonId={lesson.id}
+                      sceneId={activeScene.id}
+                      sceneOrder={activeSceneStep}
                       title={activeScene.title}
                       text={buildLessonSceneNarration(activeScene.title, activeScene.content)}
                     />
@@ -298,6 +303,7 @@ export default async function LessonPage({
                   <QuizSceneClient
                     lessonId={lesson.id}
                     sceneId={activeScene.id}
+                    sceneOrder={activeSceneStep}
                     title={activeScene.title}
                     content={activeScene.content}
                   />

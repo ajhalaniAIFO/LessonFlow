@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isLessonAudioResumeTarget,
   isLessonAudioStopDetail,
   LESSON_AUDIO_STOP_EVENT,
   requestLessonAudioStop,
@@ -32,21 +33,20 @@ describe("audio-coordination", () => {
     });
   });
 
-  it("accepts valid stop details and rejects unknown shapes", () => {
+  it("validates stop and resume payload shapes", () => {
+    expect(isLessonAudioStopDetail({ source: "playlist", reason: "start-playback" })).toBe(true);
     expect(
-      isLessonAudioStopDetail({
-        source: "playlist",
-        reason: "start-playback",
+      isLessonAudioResumeTarget({
+        lessonId: "lesson-1",
+        source: "scene",
+        sceneId: "scene-1",
+        sceneOrder: 2,
+        title: "Momentum",
       }),
     ).toBe(true);
 
-    expect(
-      isLessonAudioStopDetail({
-        source: "unknown",
-        reason: "start-playback",
-      }),
-    ).toBe(false);
-
+    expect(isLessonAudioStopDetail({ source: "unknown", reason: "start-playback" })).toBe(false);
     expect(isLessonAudioStopDetail(null)).toBe(false);
+    expect(isLessonAudioResumeTarget({ source: "scene" })).toBe(false);
   });
 });
